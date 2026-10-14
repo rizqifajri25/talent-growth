@@ -11,9 +11,12 @@ export const AppLayout: React.FC = () => {
       </main>
       <footer className="footer">
         <div className="footer-inner">
-          <p>
-            <span className="footer-highlight">Talent Growth Blog Platform</span> · Phase 4 · Full-Stack Authentication Active
-          </p>
+          <div className="footer-brand">
+            Talent Growth · Editorial Studio
+          </div>
+          <div className="footer-note">
+            A calm, independent platform for engineering, craft, and thought leadership.
+          </div>
         </div>
       </footer>
     </div>

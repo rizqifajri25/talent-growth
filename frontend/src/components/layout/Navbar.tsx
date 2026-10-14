@@ -30,9 +30,9 @@ export const Navbar: React.FC = () => {
   return (
     <header className="header">
       <div className="header-inner">
-        <Link to="/" className="logo" aria-label="Talent Growth Home">
-          <div className="logo-icon">📝</div>
-          <span>Talent Growth</span>
+        <Link to="/" className="logo-group" aria-label="Talent Growth Home">
+          <span className="logo-text">Talent Growth</span>
+          <span className="logo-badge">Editorial Studio</span>
         </Link>
 
         {/* Desktop Navigation */}
@@ -45,21 +45,29 @@ export const Navbar: React.FC = () => {
             Home
           </NavLink>
 
+          <a href="#essays" className="nav-link">
+            Essays
+          </a>
+          <a href="#topics" className="nav-link">
+            Topics
+          </a>
+          <a href="#writers" className="nav-link">
+            Writers
+          </a>
+        </nav>
+
+        {/* Action Group */}
+        <div className="nav-actions">
           {isAuthenticated && user ? (
             <>
-              <NavLink
-                to="/profile"
-                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-              >
-                <span className="user-avatar-small" aria-hidden="true">
+              <Link to="/profile" className="nav-link" aria-label="View profile">
+                <span className="user-monogram-nav" aria-hidden="true">
                   {getInitials(user.name)}
                 </span>
-                <span>Profile</span>
-              </NavLink>
-
+              </Link>
               <button
                 type="button"
-                className="btn-logout"
+                className="btn-logout-ghost"
                 onClick={handleLogout}
                 disabled={isLoggingOut || isLoading}
                 aria-label="Log out of account"
@@ -69,30 +77,27 @@ export const Navbar: React.FC = () => {
             </>
           ) : (
             <>
-              <NavLink
-                to="/login"
-                className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
-              >
-                Log in
-              </NavLink>
-
-              <Link to="/register" className="btn-primary-nav">
-                Get Started
+              <Link to="/login" className="nav-link">
+                Sign In
+              </Link>
+              <Link to="/register" className="btn-black-pill">
+                <span>Get Started</span>
+                <span aria-hidden="true">↗</span>
               </Link>
             </>
           )}
-        </nav>
 
-        {/* Mobile Hamburger Button */}
-        <button
-          type="button"
-          className="mobile-menu-toggle"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          aria-expanded={mobileMenuOpen}
-          aria-label="Toggle navigation menu"
-        >
-          {mobileMenuOpen ? '✕' : '☰'}
-        </button>
+          {/* Mobile Hamburger Button */}
+          <button
+            type="button"
+            className="mobile-menu-toggle"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-expanded={mobileMenuOpen}
+            aria-label="Toggle navigation menu"
+          >
+            {mobileMenuOpen ? '✕' : '☰'}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Drawer */}
@@ -100,7 +105,7 @@ export const Navbar: React.FC = () => {
         <div className="mobile-nav" role="dialog" aria-modal="true">
           <NavLink
             to="/"
-            className="mobile-nav-link"
+            className="nav-link"
             onClick={() => setMobileMenuOpen(false)}
             end
           >
@@ -111,14 +116,14 @@ export const Navbar: React.FC = () => {
             <>
               <NavLink
                 to="/profile"
-                className="mobile-nav-link"
+                className="nav-link"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Profile ({user.name})
               </NavLink>
               <button
                 type="button"
-                className="btn-logout-mobile"
+                className="btn-logout-ghost"
                 onClick={() => {
                   setMobileMenuOpen(false);
                   handleLogout();
@@ -132,17 +137,17 @@ export const Navbar: React.FC = () => {
             <>
               <NavLink
                 to="/login"
-                className="mobile-nav-link"
+                className="nav-link"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Log in
+                Sign In
               </NavLink>
               <Link
                 to="/register"
-                className="mobile-btn-primary"
+                className="btn-black-pill"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Get Started
+                Get Started ↗
               </Link>
             </>
           )}

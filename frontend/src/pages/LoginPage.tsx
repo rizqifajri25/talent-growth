@@ -95,98 +95,107 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="auth-page-container">
-      <div className="auth-card animate-in">
-        <div className="auth-header">
-          <div className="auth-icon-badge">🔐</div>
+    <div className="auth-split-container">
+      <div className="auth-split-card">
+        {/* Left: Sign In Form */}
+        <div className="auth-form-column">
           <h1 className="auth-title">Welcome Back</h1>
-          <p className="auth-subtitle">Sign in to manage your profile and articles</p>
-        </div>
+          <p className="auth-subtitle">Access your essays, notes, and reading room</p>
 
-        {generalError && (
-          <div className="alert-banner alert-error" role="alert" aria-live="polite">
-            <span className="alert-icon" aria-hidden="true">⚠️</span>
-            <span>{generalError}</span>
-          </div>
-        )}
+          {generalError && (
+            <div className="alert-banner alert-error" role="alert" aria-live="polite">
+              <span>{generalError}</span>
+            </div>
+          )}
 
-        <form className="auth-form" onSubmit={handleSubmit} noValidate>
-          <div className="form-group">
-            <label htmlFor="email" className="form-label">
-              Email Address
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              placeholder="name@example.com"
-              className={`form-input ${fieldErrors.email ? 'has-error' : ''}`}
-              value={formData.email}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              aria-invalid={!!fieldErrors.email}
-              aria-describedby={fieldErrors.email ? 'email-error' : undefined}
-              required
-            />
-            {fieldErrors.email && (
-              <span id="email-error" className="form-error-text" role="alert">
-                {fieldErrors.email}
-              </span>
-            )}
-          </div>
+          <form className="auth-form" onSubmit={handleSubmit} noValidate>
+            <div className="form-group">
+              <label htmlFor="email" className="form-label">
+                Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="name@example.com"
+                className={`form-input ${fieldErrors.email ? 'has-error' : ''}`}
+                value={formData.email}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                aria-invalid={!!fieldErrors.email}
+                aria-describedby={fieldErrors.email ? 'email-error' : undefined}
+                required
+              />
+              {fieldErrors.email && (
+                <span id="email-error" className="form-error-text" role="alert">
+                  {fieldErrors.email}
+                </span>
+              )}
+            </div>
 
-          <div className="form-group">
-            <div className="form-label-row">
+            <div className="form-group">
               <label htmlFor="password" className="form-label">
                 Password
               </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                placeholder="Enter your password"
+                className={`form-input ${fieldErrors.password ? 'has-error' : ''}`}
+                value={formData.password}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                aria-invalid={!!fieldErrors.password}
+                aria-describedby={fieldErrors.password ? 'password-error' : undefined}
+                required
+              />
+              {fieldErrors.password && (
+                <span id="password-error" className="form-error-text" role="alert">
+                  {fieldErrors.password}
+                </span>
+              )}
             </div>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder="Enter your password"
-              className={`form-input ${fieldErrors.password ? 'has-error' : ''}`}
-              value={formData.password}
-              onChange={handleChange}
+
+            <button
+              type="submit"
+              className="btn-submit-black"
               disabled={isSubmitting}
-              aria-invalid={!!fieldErrors.password}
-              aria-describedby={fieldErrors.password ? 'password-error' : undefined}
-              required
-            />
-            {fieldErrors.password && (
-              <span id="password-error" className="form-error-text" role="alert">
-                {fieldErrors.password}
-              </span>
-            )}
+              aria-busy={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="spinner-inline" aria-hidden="true" />
+                  <span>Signing in...</span>
+                </>
+              ) : (
+                <>
+                  <span>Sign In</span>
+                  <span aria-hidden="true">↗</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="auth-footer">
+            <p>
+              New writer?{' '}
+              <Link to="/register" className="auth-link">
+                Create an account
+              </Link>
+            </p>
           </div>
+        </div>
 
-          <button
-            type="submit"
-            className="btn-submit"
-            disabled={isSubmitting}
-            aria-busy={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <span className="spinner-inline" aria-hidden="true" />
-                <span>Signing in...</span>
-              </>
-            ) : (
-              'Sign In'
-            )}
-          </button>
-        </form>
-
-        <div className="auth-footer">
-          <p>
-            Don't have an account?{' '}
-            <Link to="/register" className="auth-link">
-              Create an account
-            </Link>
-          </p>
+        {/* Right: Architectural Visual Art */}
+        <div className="auth-visual-column" aria-hidden="true">
+          <img
+            src="/images/aurora-login.jpg"
+            alt="Architectural fluted glass column with volcanic stone and brass ring"
+            className="auth-visual-image"
+          />
         </div>
       </div>
     </div>

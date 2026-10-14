@@ -66,7 +66,6 @@ export const RegisterPage: React.FC = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Clear field-specific error as user types
     if (fieldErrors[name]) {
       setFieldErrors((prev) => {
         const updated = { ...prev };
@@ -97,7 +96,7 @@ export const RegisterPage: React.FC = () => {
         password: formData.password,
       });
 
-      // Clear password from local component state
+      // Clear password from local state
       setFormData((prev) => ({ ...prev, password: '', confirmPassword: '' }));
       navigate('/profile', { replace: true });
     } catch (err) {
@@ -115,158 +114,169 @@ export const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="auth-page-container">
-      <div className="auth-card animate-in">
-        <div className="auth-header">
-          <div className="auth-icon-badge">✨</div>
-          <h1 className="auth-title">Create an Account</h1>
-          <p className="auth-subtitle">Join Talent Growth and start sharing insights</p>
+    <div className="auth-split-container">
+      <div className="auth-split-card">
+        {/* Left: Registration Form */}
+        <div className="auth-form-column">
+          <h1 className="auth-title">Begin Your Journey</h1>
+          <p className="auth-subtitle">Publish insightful essays and join a thoughtful community</p>
+
+          {generalError && (
+            <div className="alert-banner alert-error" role="alert" aria-live="polite">
+              <span>{generalError}</span>
+            </div>
+          )}
+
+          <form className="auth-form" onSubmit={handleSubmit} noValidate>
+            <div className="form-group">
+              <label htmlFor="name" className="form-label">
+                Full Name
+              </label>
+              <input
+                id="name"
+                name="name"
+                type="text"
+                autoComplete="name"
+                placeholder="e.g. Alex Morgan"
+                className={`form-input ${fieldErrors.name ? 'has-error' : ''}`}
+                value={formData.name}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                aria-invalid={!!fieldErrors.name}
+                aria-describedby={fieldErrors.name ? 'name-error' : undefined}
+                required
+              />
+              {fieldErrors.name && (
+                <span id="name-error" className="form-error-text" role="alert">
+                  {fieldErrors.name}
+                </span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="email" className="form-label">
+                Email Address
+              </label>
+              <input
+                id="email"
+                name="email"
+                type="email"
+                autoComplete="email"
+                placeholder="name@example.com"
+                className={`form-input ${fieldErrors.email ? 'has-error' : ''}`}
+                value={formData.email}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                aria-invalid={!!fieldErrors.email}
+                aria-describedby={fieldErrors.email ? 'email-error' : undefined}
+                required
+              />
+              {fieldErrors.email && (
+                <span id="email-error" className="form-error-text" role="alert">
+                  {fieldErrors.email}
+                </span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="password" className="form-label">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Minimum 8 characters"
+                className={`form-input ${fieldErrors.password ? 'has-error' : ''}`}
+                value={formData.password}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                aria-invalid={!!fieldErrors.password}
+                aria-describedby={
+                  fieldErrors.password ? 'password-error' : 'password-help'
+                }
+                required
+              />
+              {fieldErrors.password ? (
+                <span id="password-error" className="form-error-text" role="alert">
+                  {fieldErrors.password}
+                </span>
+              ) : (
+                <span id="password-help" className="form-help-text">
+                  Must be at least 8 characters (max 72 bytes).
+                </span>
+              )}
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="confirmPassword" className="form-label">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                name="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                placeholder="Re-enter your password"
+                className={`form-input ${fieldErrors.confirmPassword ? 'has-error' : ''}`}
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                disabled={isSubmitting}
+                aria-invalid={!!fieldErrors.confirmPassword}
+                aria-describedby={
+                  fieldErrors.confirmPassword ? 'confirmPassword-error' : undefined
+                }
+                required
+              />
+              {fieldErrors.confirmPassword && (
+                <span
+                  id="confirmPassword-error"
+                  className="form-error-text"
+                  role="alert"
+                >
+                  {fieldErrors.confirmPassword}
+                </span>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              className="btn-submit-black"
+              disabled={isSubmitting}
+              aria-busy={isSubmitting}
+            >
+              {isSubmitting ? (
+                <>
+                  <span className="spinner-inline" aria-hidden="true" />
+                  <span>Creating account...</span>
+                </>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <span aria-hidden="true">↗</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="auth-footer">
+            <p>
+              Already have an account?{' '}
+              <Link to="/login" className="auth-link">
+                Sign in
+              </Link>
+            </p>
+          </div>
         </div>
 
-        {generalError && (
-          <div className="alert-banner alert-error" role="alert" aria-live="polite">
-            <span className="alert-icon" aria-hidden="true">⚠️</span>
-            <span>{generalError}</span>
-          </div>
-        )}
-
-        <form className="auth-form" onSubmit={handleSubmit} noValidate>
-          <div className="form-group">
-            <label htmlFor="name" className="form-label">
-              Full Name
-            </label>
-            <input
-              id="name"
-              name="name"
-              type="text"
-              autoComplete="name"
-              placeholder="e.g. Alex Morgan"
-              className={`form-input ${fieldErrors.name ? 'has-error' : ''}`}
-              value={formData.name}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              aria-invalid={!!fieldErrors.name}
-              aria-describedby={fieldErrors.name ? 'name-error' : undefined}
-              required
-            />
-            {fieldErrors.name && (
-              <span id="name-error" className="form-error-text" role="alert">
-                {fieldErrors.name}
-              </span>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="email" className="form-label">
-              Email Address
-            </label>
-            <input
-              id="email"
-              name="email"
-              type="email"
-              autoComplete="email"
-              placeholder="name@example.com"
-              className={`form-input ${fieldErrors.email ? 'has-error' : ''}`}
-              value={formData.email}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              aria-invalid={!!fieldErrors.email}
-              aria-describedby={fieldErrors.email ? 'email-error' : undefined}
-              required
-            />
-            {fieldErrors.email && (
-              <span id="email-error" className="form-error-text" role="alert">
-                {fieldErrors.email}
-              </span>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password" className="form-label">
-              Password
-            </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="new-password"
-              placeholder="Minimum 8 characters"
-              className={`form-input ${fieldErrors.password ? 'has-error' : ''}`}
-              value={formData.password}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              aria-invalid={!!fieldErrors.password}
-              aria-describedby={
-                fieldErrors.password ? 'password-error' : 'password-help'
-              }
-              required
-            />
-            {fieldErrors.password ? (
-              <span id="password-error" className="form-error-text" role="alert">
-                {fieldErrors.password}
-              </span>
-            ) : (
-              <span id="password-help" className="form-help-text">
-                Must be at least 8 characters (max 72 bytes).
-              </span>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="confirmPassword" className="form-label">
-              Confirm Password
-            </label>
-            <input
-              id="confirmPassword"
-              name="confirmPassword"
-              type="password"
-              autoComplete="new-password"
-              placeholder="Re-enter your password"
-              className={`form-input ${fieldErrors.confirmPassword ? 'has-error' : ''}`}
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              disabled={isSubmitting}
-              aria-invalid={!!fieldErrors.confirmPassword}
-              aria-describedby={
-                fieldErrors.confirmPassword ? 'confirmPassword-error' : undefined
-              }
-              required
-            />
-            {fieldErrors.confirmPassword && (
-              <span
-                id="confirmPassword-error"
-                className="form-error-text"
-                role="alert"
-              >
-                {fieldErrors.confirmPassword}
-              </span>
-            )}
-          </div>
-
-          <button
-            type="submit"
-            className="btn-submit"
-            disabled={isSubmitting}
-            aria-busy={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <span className="spinner-inline" aria-hidden="true" />
-                <span>Creating account...</span>
-              </>
-            ) : (
-              'Create Account'
-            )}
-          </button>
-        </form>
-
-        <div className="auth-footer">
-          <p>
-            Already have an account?{' '}
-            <Link to="/login" className="auth-link">
-              Sign in
-            </Link>
-          </p>
+        {/* Right: Architectural Visual Art */}
+        <div className="auth-visual-column" aria-hidden="true">
+          <img
+            src="/images/aurora-register.jpg"
+            alt="Architectural fluted glass wall with granite stone and brass sphere"
+            className="auth-visual-image"
+          />
         </div>
       </div>
     </div>
