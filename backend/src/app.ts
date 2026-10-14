@@ -3,6 +3,7 @@ import cors from 'cors';
 import healthRoutes from './routes/health.routes';
 import authRoutes from './routes/auth.routes';
 import postRoutes from './routes/posts.routes';
+import commentRoutes from './routes/comments.routes';
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use(
 // Register API routes
 app.use('/api/v1', healthRoutes);
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1', commentRoutes);
 app.use('/api/v1/posts', postRoutes);
 
 export default app;

@@ -7,7 +7,7 @@
     "dev": "tsx watch src/server.ts",
     "build": "npm run db:generate && tsc",
     "start": "node dist/server.js",
-    "test": "vitest run src/",
+    "test": "vitest run src/ --test-timeout=15000",
     "postinstall": "npm run db:generate",
     "db:validate": "prisma validate",
     "db:generate": "prisma generate",

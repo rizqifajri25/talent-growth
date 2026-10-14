@@ -4,6 +4,7 @@ import { postsApi } from '../api/posts.api';
 import { extractApiError } from '../api/client';
 import { useAuth } from '../context/useAuth';
 import { DeleteConfirmModal } from '../components/posts/DeleteConfirmModal';
+import { CommentSection } from '../components/comments/CommentSection';
 import type { Post } from '../types/posts.types';
 
 export const PostDetailPage: React.FC = () => {
@@ -223,6 +224,9 @@ export const PostDetailPage: React.FC = () => {
           </Link>
         </div>
       </footer>
+
+      {/* Conversation / Comments Section */}
+      <CommentSection postId={post.id} />
 
       {/* Delete Confirmation Modal */}
       <DeleteConfirmModal
