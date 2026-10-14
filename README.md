@@ -14,7 +14,8 @@ Talent Growth Blog Platform is a web application that enables users to create, r
 | Backend    | Node.js, Express.js, TypeScript                         | ✅ Scaffolded (Phase 1) |
 | Database   | PostgreSQL (local / Supabase)                           | ✅ Designed (Phase 2)   |
 | ORM        | Prisma ORM (v7.10.0 + `@prisma/adapter-pg`)              | ✅ Configured (Phase 2) |
-| Auth       | JWT + bcrypt                                            | ⏳ Planned (Phase 3)   |
+| Auth       | JWT (HS256) + bcrypt (12 rounds) + Zod                  | ✅ Implemented (Phase 3)|
+| Testing    | Vitest, Supertest                                       | ✅ Implemented (Phase 3)|
 | HTTP Client| Axios                                                   | ⏳ Planned             |
 | Deployment | Vercel (Frontend), Railway (Backend), Supabase (DB)     | ⏳ Planned             |
 
@@ -46,11 +47,23 @@ talent-growth/
 │   │   └── schema.prisma      # Prisma schema definition
 │   ├── src/
 │   │   ├── config/            # Configuration modules
+│   │   │   ├── auth.ts        # Centralized auth & JWT configuration
 │   │   │   └── prisma.ts      # Singleton Prisma Client instance
+│   │   ├── controllers/       # HTTP request controllers
+│   │   │   └── auth.controller.ts # Register, login, logout, getMe
 │   │   ├── generated/         # Generated Prisma Client (CommonJS)
 │   │   ├── middleware/        # Express middleware
-│   │   ├── routes/
+│   │   │   └── requireAuth.ts # JWT + database session verification
+│   │   ├── routes/            # Express route definitions
+│   │   │   ├── auth.routes.ts # Auth route endpoints
 │   │   │   └── health.routes.ts # Health & diagnostic endpoints
+│   │   ├── services/          # Business logic layer
+│   │   │   └── auth.service.ts # Registration, password hashing, session tracking
+│   │   ├── validators/        # Request validation schemas (Zod)
+│   │   │   └── auth.validators.ts # Input validation & normalization
+│   │   ├── __tests__/         # Automated test suites
+│   │   │   ├── auth.api.test.ts # API integration tests
+│   │   │   └── auth.validators.test.ts # Validator unit tests
 │   │   ├── app.ts             # Express app setup
 │   │   └── server.ts          # HTTP server entry point
 │   ├── .env.example           # Environment variable template
@@ -70,6 +83,36 @@ talent-growth/
 - **npm** >= 9.x (tested with v11.10.1)
 - **Git** >= 2.x
 - **PostgreSQL** >= 14.x (local instance or cloud Supabase project)
+
+---
+
+## 🔐 Authentication & Session Architecture
+
+The application uses stateful JWT access tokens verified against a database session store:
+
+1. **Password Hashing (bcrypt)**:
+   - Passwords are encrypted with `bcrypt` using **12 salt rounds**.
+   - Input passwords are restricted to a maximum of **72 bytes in UTF-8** to align with bcrypt's internal algorithm boundary.
+   - Plaintext passwords are never stored, logged, or retained in memory longer than necessary.
+2. **Access Token Generation (JWT)**:
+   - Algorithm: Explicitly set to `HS256`.
+   - Token claims:
+     - `sub`: Authenticated User UUID.
+     - `jti`: Unique session UUID identifier.
+     - `iss`: Configured issuer (`talent-growth-api`).
+     - `aud`: Configured audience (`talent-growth-web`).
+     - `iat`: Issuance timestamp.
+     - `exp`: Expiration timestamp (default: 900 seconds / 15 minutes).
+3. **Session Tracking & Instant Revocation (`AuthSession`)**:
+   - Pure stateless JWTs cannot be revoked immediately when a user logs out.
+   - Every issued access token is tracked in the `auth_sessions` table via its unique `tokenId` (`jti`).
+   - The full JWT is **never** saved in the database; only the `jti` identifier is stored.
+   - When a user logs out (`POST /api/v1/auth/logout`), the `revokedAt` timestamp is updated in PostgreSQL.
+   - The `requireAuth` middleware checks both cryptographic signature and the database session status. Revoked or expired sessions immediately return `HTTP 401 Unauthorized`.
+4. **Input Validation & Sanitization (Zod)**:
+   - Names are trimmed, required, and capped at 80 characters.
+   - Email addresses are trimmed, converted to lowercase, and verified for standard RFC compliance.
+   - Passwords require at least 8 characters and maximum 72 bytes. Passwords are never auto-trimmed to preserve user intent.
 
 ---
 
@@ -99,10 +142,6 @@ The relational schema consists of four core models:
 
 For the complete ERD diagram, column dictionaries, and cardinality details, see [docs/database-erd.md](file:///d:/talent-growth/docs/database-erd.md).
 
-### 2. Database Client Singleton
-
-The database client is located at `backend/src/config/prisma.ts`. It initializes a single `PrismaClient` using `@prisma/adapter-pg` and the `pg` connection pool. During local development, the singleton pattern prevents multiple client connections from being opened across hot-reloads (`tsx watch`).
-
 ---
 
 ## 🚀 Getting Started
@@ -126,6 +165,8 @@ cp frontend/.env.example frontend/.env
 cp backend/.env.example backend/.env
 ```
 
+Generate a secure random secret for `JWT_SECRET` in `backend/.env` (at least 32 characters, e.g. using `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`).
+
 ### 3. Install dependencies
 
 ```bash
@@ -142,7 +183,7 @@ npm install
 
 #### Local PostgreSQL:
 1. Ensure PostgreSQL is running on your machine.
-2. Create a development database (e.g. `talent_growth_dev`):
+2. Create a development database:
    ```sql
    CREATE DATABASE talent_growth_dev;
    ```
@@ -190,7 +231,15 @@ npm run db:generate
   npm run db:studio
   ```
 
-### 7. Run the Applications
+### 7. Run Automated Tests
+
+Execute all validator unit tests and API integration tests:
+
+```bash
+npm test
+```
+
+### 8. Run the Applications
 
 ```bash
 # Backend (from backend directory)
@@ -200,20 +249,18 @@ npm run dev
 npm run dev
 ```
 
-The frontend will run at **http://localhost:5173** and the backend at **http://localhost:4000**.
+The frontend runs at **http://localhost:5173** and the backend at **http://localhost:4000**.
 
 ---
 
 ## 📡 API Endpoints
 
-### 1. Basic Health Check
+### Health Endpoints
 
-Verifies that the Express HTTP server is operational.
-
+#### 1. Basic Health Check
 ```http
 GET /api/v1/health
 ```
-
 **Response (HTTP 200 OK):**
 ```json
 {
@@ -223,74 +270,175 @@ GET /api/v1/health
 }
 ```
 
-### 2. Database Diagnostic Health Check
-
-Executes a probe query (`SELECT 1`) via Prisma Client to verify database connectivity.
-
+#### 2. Database Health Check
 ```http
 GET /api/v1/health/db
 ```
-
-**Response when database is connected (HTTP 200 OK):**
+**Response (HTTP 200 OK):**
 ```json
 {
   "success": true,
   "message": "Database connection is healthy",
   "status": "connected",
-  "timestamp": "2026-10-14T12:00:00.000Z"
+  "timestamp": "2026-10-14T12:39:10.626Z"
 }
 ```
 
-**Response when database is disconnected or unreachable (HTTP 503 Service Unavailable):**
+---
+
+### Authentication Endpoints
+
+All authentication endpoints use the prefix `/api/v1/auth`.
+
+#### 1. User Registration
+Creates a new user account, stores password hash, creates an active session, and returns an access token.
+
+```http
+POST /api/v1/auth/register
+Content-Type: application/json
+
+{
+  "name": "Budi Santoso",
+  "email": "budi.santoso@example.com",
+  "password": "SecurePassword123!"
+}
+```
+
+**Response (HTTP 201 Created):**
 ```json
 {
-  "success": false,
-  "message": "Database is currently unreachable",
-  "status": "disconnected",
-  "timestamp": "2026-10-14T11:57:28.084Z"
+  "success": true,
+  "message": "Registration successful",
+  "data": {
+    "user": {
+      "id": "e82d1c68-07cb-4fc4-bb77-9df08f62f3a4",
+      "name": "Budi Santoso",
+      "email": "budi.santoso@example.com",
+      "avatarUrl": null,
+      "createdAt": "2026-10-14T12:45:00.000Z"
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenType": "Bearer",
+    "expiresIn": 900
+  }
 }
 ```
 
-> **Security Note:** The `/api/v1/health/db` endpoint never returns internal stack traces, connection strings, or database credentials. It is intended for development and infrastructure diagnostics; evaluate whether to restrict or disable this endpoint before exposing it to the public internet.
+**Common Error Responses:**
+- `HTTP 400 Bad Request`: Input validation failed (e.g. name empty, invalid email, password < 8 chars or > 72 bytes).
+- `HTTP 409 Conflict`: An account with this email address already exists.
+
+#### 2. User Login
+Verifies credentials, generates a new session and `jti`, and returns an access token.
+
+```http
+POST /api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "budi.santoso@example.com",
+  "password": "SecurePassword123!"
+}
+```
+
+**Response (HTTP 200 OK):**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "user": {
+      "id": "e82d1c68-07cb-4fc4-bb77-9df08f62f3a4",
+      "name": "Budi Santoso",
+      "email": "budi.santoso@example.com",
+      "avatarUrl": null,
+      "createdAt": "2026-10-14T12:45:00.000Z"
+    },
+    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "tokenType": "Bearer",
+    "expiresIn": 900
+  }
+}
+```
+
+**Common Error Responses:**
+- `HTTP 400 Bad Request`: Invalid request data.
+- `HTTP 401 Unauthorized`: `Invalid email or password.` (Generic message to avoid email enumeration).
+
+#### 3. User Logout (Protected)
+Revokes the session corresponding to the bearer token in PostgreSQL.
+
+```http
+POST /api/v1/auth/logout
+Authorization: Bearer <access_token>
+```
+
+**Response (HTTP 200 OK):**
+```json
+{
+  "success": true,
+  "message": "Logout successful"
+}
+```
+
+#### 4. Current User Profile (Protected)
+Retrieves the profile of the authenticated user.
+
+```http
+GET /api/v1/auth/me
+Authorization: Bearer <access_token>
+```
+
+**Response (HTTP 200 OK):**
+```json
+{
+  "success": true,
+  "message": "Current user retrieved successfully",
+  "data": {
+    "user": {
+      "id": "e82d1c68-07cb-4fc4-bb77-9df08f62f3a4",
+      "name": "Budi Santoso",
+      "email": "budi.santoso@example.com",
+      "avatarUrl": null,
+      "createdAt": "2026-10-14T12:45:00.000Z",
+      "updatedAt": "2026-10-14T12:45:00.000Z"
+    }
+  }
+}
+```
+
+**Common Protected Error Responses:**
+- `HTTP 401 Unauthorized`: Missing header, invalid format, invalid cryptographic signature, expired token, or revoked session.
 
 ---
 
 ## 🔧 Environment Variables
 
-### Frontend (`frontend/.env`)
-
-| Variable            | Description                   | Default                        |
-| ------------------- | ----------------------------- | ------------------------------ |
-| `VITE_API_BASE_URL` | Backend API base URL          | `http://localhost:4000/api/v1` |
-
 ### Backend (`backend/.env`)
 
-| Variable        | Description                                               | Default / Format                                                      |
-| --------------- | --------------------------------------------------------- | --------------------------------------------------------------------- |
-| `PORT`          | HTTP port the API server listens on                       | `4000`                                                                |
-| `FRONTEND_URL`  | Origin URL allowed by CORS                                | `http://localhost:5173`                                               |
-| `DATABASE_URL`  | Pooled PostgreSQL connection string for runtime queries   | `postgresql://user:password@localhost:5432/talent_growth_dev?schema=public` |
-| `DIRECT_URL`    | Direct PostgreSQL connection string for Prisma migrations | `postgresql://user:password@localhost:5432/talent_growth_dev?schema=public` |
+| Variable                       | Description                                               | Example / Default Value                                               |
+| ------------------------------ | --------------------------------------------------------- | --------------------------------------------------------------------- |
+| `PORT`                         | HTTP port the API server listens on                       | `4000`                                                                |
+| `FRONTEND_URL`                 | Origin URL allowed by CORS                                | `http://localhost:5173`                                               |
+| `DATABASE_URL`                 | Pooled PostgreSQL connection string for runtime queries   | `postgresql://postgres:password@localhost:5432/talent_growth_dev?schema=public` |
+| `DIRECT_URL`                   | Direct PostgreSQL connection string for Prisma migrations | `postgresql://postgres:password@localhost:5432/talent_growth_dev?schema=public` |
+| `JWT_SECRET`                   | Cryptographic secret for signing JWT access tokens (>= 32 chars) | `replace-with-a-random-secret-of-at-least-32-characters`              |
+| `JWT_ISSUER`                   | Expected JWT issuer claim (`iss`)                         | `talent-growth-api`                                                   |
+| `JWT_AUDIENCE`                 | Expected JWT audience claim (`aud`)                       | `talent-growth-web`                                                   |
+| `JWT_ACCESS_TOKEN_TTL_SECONDS` | Token time-to-live in seconds                             | `900` (15 minutes)                                                    |
 
 ---
 
 ## 📜 Available Scripts
-
-### Frontend
-
-| Script           | Command                | Description                         |
-| ---------------- | ---------------------- | ----------------------------------- |
-| `npm run dev`    | `vite`                 | Start development server            |
-| `npm run build`  | `tsc -b && vite build` | Type-check and build for production |
-| `npm run preview`| `vite preview`         | Preview production build locally    |
 
 ### Backend
 
 | Script                 | Command                  | Description                                            |
 | ---------------------- | ------------------------ | ------------------------------------------------------ |
 | `npm run dev`          | `tsx watch src/server.ts`| Start development server with hot reload               |
-| `npm run build`        | `tsc`                    | Compile TypeScript to JavaScript                       |
+| `npm run build`        | `npm run db:generate && tsc` | Generate Prisma client and compile TypeScript      |
 | `npm start`            | `node dist/server.js`    | Run compiled production server                         |
+| `npm test`             | `vitest run`             | Run all automated unit and integration tests           |
 | `npm run db:validate`  | `prisma validate`        | Validate Prisma schema syntax and model definitions    |
 | `npm run db:generate`  | `prisma generate`        | Generate Prisma Client for TypeScript / CommonJS       |
 | `npm run db:migrate:dev`| `prisma migrate dev`    | Create and apply migrations in development             |
@@ -302,24 +450,18 @@ GET /api/v1/health/db
 
 ## 🏗️ Design Decisions
 
-1. **Relational Database (PostgreSQL)**:
-   - Blog platforms inherently feature relational data structures: users author posts, posts receive comments, and users own sessions. PostgreSQL provides ACID transactions, robust foreign key enforcement, and high performance.
-2. **Prisma ORM with Driver Adapter (`@prisma/adapter-pg`)**:
-   - Prisma offers end-to-end type safety, automated migrations, and schema validation. Prisma 7's driver adapter architecture decouples the query engine from low-level networking, allowing native connection pooling via `pg`.
-3. **`passwordHash` Storage**:
-   - Passwords must never be stored in plaintext. The field is named `passwordHash` to enforce the architectural standard that only one-way cryptographic hashes (such as bcrypt) will be stored when authentication is implemented in Phase 3.
-4. **`AuthSession` for Token Revocation**:
-   - Pure stateless JWTs cannot be revoked prior to expiration when a user logs out. The `AuthSession` model tracks unique token IDs (`jti`), enabling instant revocation on logout without storing sensitive JWT signatures or payloads.
-5. **Nullable Category on Posts**:
-   - In early stages, forcing rigid category management adds friction to content creation. A nullable string category keeps the model lightweight while allowing future taxonomy expansion without schema breakage.
-6. **Explicit Referential Actions (`ON DELETE CASCADE`)**:
-   - Data cleanup policies are defined explicitly on all foreign keys: deleting a user cascades to their posts, comments, and sessions; deleting a post cascades to its comments. This eliminates orphan rows.
-7. **Deferred Features (Scope Boundary)**:
-   - Business logic, user registration, JWT generation, post CRUD, and comment routes are explicitly deferred to subsequent phases. Phase 2 strictly establishes the database foundation, schema, migration history, and client configuration.
+1. **Stateful JWT with Database Sessions**:
+   - While JWTs carry claims statelessly, tracking active session identifiers (`jti`) in PostgreSQL gives the server immediate revocation power upon logout or suspicious activity without storing bloated tokens.
+2. **Password Hashing with bcrypt**:
+   - bcrypt with 12 rounds provides strong protection against rainbow tables and brute-force attacks while maintaining fast enough response times for user registration and login.
+3. **Decoupled Architecture**:
+   - Validators (`Zod`), Services (business logic & transactions), Controllers (HTTP handling), and Middleware (`requireAuth`) are strictly separated for clean testability and maintainability.
+4. **Targeted Integration Test Cleanup**:
+   - Integration tests connect to the local development database using dynamically generated random emails (`test_<uuid>@example.com`). Tests strictly delete only their created records upon completion and never reset or wipe database tables.
 
 ---
 
-## ✅ Current Status (Phase 2 Completed)
+## ✅ Current Status (Phase 3 Completed)
 
 - [x] Repository initialized with Git (Phase 1)
 - [x] Frontend scaffolded with React + TypeScript + Vite (Phase 1)
@@ -328,26 +470,33 @@ GET /api/v1/health/db
 - [x] PostgreSQL relational schema designed (`User`, `Post`, `Comment`, `AuthSession`) (Phase 2)
 - [x] Entity Relationship Diagram and architecture documentation (`docs/database-erd.md`) (Phase 2)
 - [x] Prisma ORM v7 configured with PostgreSQL adapter (`@prisma/adapter-pg`) (Phase 2)
-- [x] Prisma configuration file created (`prisma.config.ts`) (Phase 2)
-- [x] Singleton Prisma Client created (`src/config/prisma.ts`) (Phase 2)
-- [x] Initial migration SQL generated (`prisma/migrations/20261014120000_init/migration.sql`) (Phase 2)
+- [x] Initial migration applied to local database `talent_growth_dev` (Phase 2)
 - [x] Diagnostic database health endpoint added (`GET /api/v1/health/db`) (Phase 2)
-- [x] Database management scripts added to `package.json` (Phase 2)
+- [x] Password hashing with bcrypt (12 rounds) & 72-byte UTF-8 enforcement (Phase 3)
+- [x] JWT token signing & verification with HS256, issuer, audience, and expiration (Phase 3)
+- [x] Zod validation schemas for register & login with error normalization (Phase 3)
+- [x] Registration endpoint (`POST /api/v1/auth/register`) with atomic session creation (Phase 3)
+- [x] Login endpoint (`POST /api/v1/auth/login`) with generic error messages (Phase 3)
+- [x] Logout endpoint (`POST /api/v1/auth/logout`) with session revocation in database (Phase 3)
+- [x] Current user profile endpoint (`GET /api/v1/auth/me`) (Phase 3)
+- [x] `requireAuth` middleware with token and PostgreSQL session verification (Phase 3)
+- [x] Full automated test suite (26 passing tests with Vitest & Supertest) (Phase 3)
 
 ## 🗺️ Roadmap
 
-| Phase | Description                          | Status      |
-| ----- | ------------------------------------ | ----------- |
-| 1     | Project initialization & scaffolding | ✅ Done     |
-| 2     | Database setup (PostgreSQL + Prisma) | ✅ Done     |
-| 3     | Authentication (JWT + bcrypt)        | ⏳ Upcoming |
-| 4     | Blog post CRUD                       | ⏳ Upcoming |
-| 5     | Comments system                      | ⏳ Upcoming |
-| 6     | User profiles & authorization        | ⏳ Upcoming |
-| 7     | Search, pagination, markdown         | ⏳ Upcoming |
-| 8     | Photo upload                         | ⏳ Upcoming |
-| 9     | Testing                              | ⏳ Upcoming |
-| 10    | Deployment                           | ⏳ Upcoming |
+| Phase | Description                                    | Status      |
+| ----- | ---------------------------------------------- | ----------- |
+| 1     | Project initialization & scaffolding           | ✅ Done     |
+| 2     | Database setup (PostgreSQL + Prisma)           | ✅ Done     |
+| 3     | Authentication (JWT, bcrypt, session tracking) | ✅ Done     |
+| 4     | Frontend Auth Integration (UI, login, register)| ⏳ Upcoming |
+| 5     | Blog post CRUD                                 | ⏳ Upcoming |
+| 6     | Comments system                                | ⏳ Upcoming |
+| 7     | User profiles & authorization                  | ⏳ Upcoming |
+| 8     | Search, pagination, markdown                   | ⏳ Upcoming |
+| 9     | Photo upload                                   | ⏳ Upcoming |
+| 10    | Testing & Polish                               | ⏳ Upcoming |
+| 11    | Deployment                                     | ⏳ Upcoming |
 
 ---
 

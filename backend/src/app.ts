@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import healthRoutes from './routes/health.routes';
+import authRoutes from './routes/auth.routes';
 
 const app = express();
 
@@ -19,5 +20,6 @@ app.use(
 
 // Register API routes
 app.use('/api/v1', healthRoutes);
+app.use('/api/v1/auth', authRoutes);
 
 export default app;
