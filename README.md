@@ -1,242 +1,216 @@
 # Talent Growth Blog Platform
 
-A full-stack blog application for sharing knowledge and growing together, built with modern web technologies.
+A full-stack editorial blog platform for sharing knowledge and growing together, built with modern web technologies and the **Aurora** editorial design system.
 
 ## 🎯 Purpose
 
-Talent Growth Blog Platform is a web application that enables users to create, read, and share blog posts. The platform aims to foster knowledge sharing and professional growth within a community.
+Talent Growth Blog Platform is a web publication and blogging platform enabling engineers, architects, and independent thinkers to compose, read, edit, and share essays. The platform prioritizes calm, high-signal reading, typographic excellence, and robust full-stack security.
 
 ## 🛠️ Tech Stack
 
-| Layer       | Technology                                              | Status                  |
-| ----------- | ------------------------------------------------------- | ----------------------- |
-| Frontend    | React 19, TypeScript, Vite, React Router v7             | ✅ Integrated (Phase 4) |
-| Backend     | Node.js, Express.js, TypeScript                         | ✅ Scaffolded (Phase 1) |
-| Database    | PostgreSQL (local / Supabase)                           | ✅ Designed (Phase 2)   |
-| ORM         | Prisma ORM (v7.10.0 + `@prisma/adapter-pg`)              | ✅ Configured (Phase 2) |
-| Auth        | JWT (HS256) + bcrypt (12 rounds) + Zod + In-Memory Token| ✅ Integrated (Phase 4) |
-| Testing     | Vitest, Supertest                                       | ✅ Passing 26/26 Tests  |
-| HTTP Client | Axios (Centralized instance with Bearer interceptor)    | ✅ Implemented (Phase 4)|
-| Deployment  | Vercel (Frontend), Railway (Backend), Supabase (DB)     | ⏳ Planned              |
+| Layer       | Technology                                                  | Status                       |
+| ----------- | ----------------------------------------------------------- | ---------------------------- |
+| Frontend    | React 19, TypeScript, Vite, React Router v7                 | ✅ Integrated (Phase 4 & 5)  |
+| Design System| **Aurora** (Warm Porcelain, Instrument Serif, Minimalist)   | ✅ Permanent Standard        |
+| Backend     | Node.js, Express.js, TypeScript                             | ✅ Production-ready          |
+| Database    | PostgreSQL (Local `talent_growth_dev` / Supabase)            | ✅ Relational Schema         |
+| ORM         | Prisma ORM (v7.10.0 + `@prisma/adapter-pg` driver)          | ✅ Configured & Migrated     |
+| Auth        | JWT (HS256) + bcrypt (12 rounds) + Zod + In-Memory RAM Store | ✅ Tested & Verified         |
+| Testing     | Vitest, Supertest                                           | ✅ **43/43 Tests Passing**   |
+| Linter      | Oxlint (Fast Rust-based linting, 0 warnings, 0 errors)       | ✅ Enforced                  |
+| HTTP Client | Axios (Centralized instance with Bearer interceptor)        | ✅ Implemented               |
+| Deployment  | Vercel (Frontend), Railway (Backend), Supabase (DB)         | ⏳ Planned (Phase 11)        |
+
+---
+
+## 🎨 Design System: Aurora (Permanent Standard)
+
+Starting from Phase 4 and cemented throughout Phase 5 and all future phases, Talent Growth strictly adheres to **Aurora — Warm Editorial Luxury & Architectural Minimalism**:
+
+- **Warm Porcelain Palette**:
+  - Background Canvas: `--color-bg: #FBFBFA` (Porcelain)
+  - Card & Surface: `--color-surface: #FFFFFF` (Pure White) with subtle stone borders (`#E8E6DF`)
+  - Deep Carbon Typography: `--color-text: #121212` for high contrast and readability
+  - Muted Graphite: `--color-text-secondary: #6B6963`
+  - Muted Brass Accents: `--color-accent-brass: #C2A676`
+- **Typographic Hierarchy**:
+  - **Display / Headlines**: *Instrument Serif* (Google Fonts) with editorial italic flourishes.
+  - **Body Text**: *Plus Jakarta Sans* (18px, line-height 1.85 for comfortable reading).
+  - **Labels / Micro-copy**: *JetBrains Mono* for timestamps, categories, and technical metadata.
+- **Architectural Minimalism**:
+  - Pill form buttons with solid jet-black fill and directional arrows (`Write an essay ↗`).
+  - Brass-toned category badges.
+  - Split-screen editorial compositions with 3D architectural sculpture framing.
+  - Prohibition of neon glows, heavy gradients, or generic AI slop templates.
+
+---
 
 ## 📁 Project Structure
 
 ```
 talent-growth/
-├── frontend/                  # React + TypeScript + Vite application
-│   ├── public/                # Static public assets
+├── frontend/                  # React 19 + TypeScript + Vite application
+│   ├── public/
+│   │   ├── images/            # Curated Aurora 3D architectural imagery
+│   │   │   ├── aurora-home.jpg
+│   │   │   ├── aurora-login.jpg
+│   │   │   └── aurora-register.jpg
+│   │   ├── favicon.svg
+│   │   └── icons.svg
 │   ├── src/
-│   │   ├── api/               # Centralized API layer
-│   │   │   ├── client.ts      # Axios instance, in-memory tokenStore, interceptors
-│   │   │   └── auth.api.ts    # Typed auth service (register, login, logout, getMe)
-│   │   ├── assets/            # Images, icons, media
-│   │   ├── components/        # Reusable components
-│   │   │   ├── auth/          # Authentication guards
+│   │   ├── api/               # Centralized API service layer
+│   │   │   ├── client.ts      # Axios instance, in-memory tokenStore, extractApiError
+│   │   │   ├── auth.api.ts    # Auth endpoints (register, login, logout, getMe)
+│   │   │   └── posts.api.ts   # Blog post CRUD service (getPosts, getById, create, update, delete)
+│   │   ├── components/        # Reusable UI components
+│   │   │   ├── auth/
 │   │   │   │   └── ProtectedRoute.tsx # Route guard redirecting to /login
-│   │   │   └── layout/        # Layout components
-│   │   │       ├── AppLayout.tsx # Shell layout with Navbar and Footer
-│   │   │       └── Navbar.tsx # Auth-aware navigation & mobile menu
+│   │   │   ├── layout/
+│   │   │   │   ├── AppLayout.tsx      # Shell layout (Navbar, Outlet, Footer)
+│   │   │   │   └── Navbar.tsx         # Aurora sticky header with author actions
+│   │   │   └── posts/
+│   │   │       ├── PostCard.tsx       # Editorial article card with category badge
+│   │   │       └── DeleteConfirmModal.tsx # Accessible modal for post removal
 │   │   ├── context/           # React context providers & hooks
-│   │   │   ├── authContextDef.ts # Context definition (React Refresh safe)
+│   │   │   ├── authContextDef.ts # Fast Refresh safe auth context definition
 │   │   │   ├── AuthContext.tsx   # AuthProvider managing authentication state
 │   │   │   └── useAuth.ts        # Custom hook for consuming auth context
 │   │   ├── pages/             # Page components
-│   │   │   ├── HomePage.tsx   # Landing page with dynamic auth CTAs
-│   │   │   ├── LoginPage.tsx  # Sign-in form with 401 & network error handling
-│   │   │   ├── RegisterPage.tsx # Account creation with client & server validation
-│   │   │   └── ProfilePage.tsx  # Protected profile with live /auth/me data
-│   │   ├── types/             # TypeScript interfaces & types
-│   │   │   └── auth.types.ts  # User, session, payload, and response types
-│   │   ├── App.tsx            # Root router & provider configuration
-│   │   ├── App.css            # Bespoke dark theme & responsive UI styles
-│   │   ├── index.css          # Design tokens, variables & base styling
+│   │   │   ├── HomePage.tsx       # Split-hero with latest live PostgreSQL essays
+│   │   │   ├── EssaysPage.tsx     # Full archive with category topic filters
+│   │   │   ├── PostDetailPage.tsx # Editorial reading view with author controls
+│   │   │   ├── NewPostPage.tsx    # Authoring desk for composing new essays
+│   │   │   ├── EditPostPage.tsx   # Authoring desk for revising existing essays
+│   │   │   ├── LoginPage.tsx      # Split-panel sign in with error handling
+│   │   │   ├── RegisterPage.tsx   # Split-panel registration with UTF-8 limits
+│   │   │   └── ProfilePage.tsx    # Author workspace with published essays manager
+│   │   ├── types/             # TypeScript definitions
+│   │   │   ├── auth.types.ts      # User, session, payload, and response types
+│   │   │   └── posts.types.ts     # Post, Author, CRUD payloads, API wrappers
+│   │   ├── App.tsx            # Root router & protected route configuration
+│   │   ├── App.css            # Aurora editorial styling & responsive rules
+│   │   ├── index.css          # Aurora design tokens & base typography
 │   │   └── main.tsx           # React entry point
-│   ├── .env.example           # Frontend environment template
-│   ├── index.html             # HTML shell
-│   ├── package.json           # Dependencies (axios, react-router-dom, react 19)
-│   ├── tsconfig.json          # TypeScript configuration
-│   └── vite.config.ts         # Vite build configuration
-├── backend/                   # Express.js API server
-│   ├── prisma/                # Prisma ORM configuration
+│   ├── index.html             # HTML shell loading Google Fonts
+│   └── package.json           # Frontend dependencies & scripts
+├── backend/                   # Node.js + Express.js API server
+│   ├── prisma/
 │   │   ├── migrations/        # Version-controlled SQL migrations
-│   │   │   ├── 20261014120000_init/
-│   │   │   │   └── migration.sql # Initial schema migration
-│   │   │   └── migration_lock.toml
+│   │   │   └── 20261014120000_init/
+│   │   │       └── migration.sql # Initial schema (User, Post, Comment, AuthSession)
 │   │   └── schema.prisma      # Prisma schema definition
 │   ├── src/
-│   │   ├── config/            # Configuration modules
-│   │   │   ├── auth.ts        # Centralized auth & JWT configuration
+│   │   ├── config/            # Server & database configurations
+│   │   │   ├── auth.ts        # Centralized JWT config
 │   │   │   └── prisma.ts      # Singleton Prisma Client instance
-│   │   ├── controllers/       # HTTP request controllers
-│   │   │   └── auth.controller.ts # Register, login, logout, getMe
+│   │   ├── controllers/       # HTTP controllers
+│   │   │   ├── auth.controller.ts  # Register, login, logout, getMe
+│   │   │   └── posts.controller.ts # Blog post CRUD controllers
 │   │   ├── generated/         # Generated Prisma Client
 │   │   ├── middleware/        # Express middleware
-│   │   │   └── requireAuth.ts # JWT + database session verification
-│   │   ├── routes/            # Express route definitions
-│   │   │   ├── auth.routes.ts # Auth route endpoints
-│   │   │   └── health.routes.ts # Health & diagnostic endpoints
+│   │   │   └── requireAuth.ts # Bearer token & active database session verification
+│   │   ├── routes/            # Route declarations
+│   │   │   ├── auth.routes.ts   # /api/v1/auth routes
+│   │   │   ├── posts.routes.ts  # /api/v1/posts routes
+│   │   │   └── health.routes.ts # Health & diagnostic checks
 │   │   ├── services/          # Business logic layer
-│   │   │   └── auth.service.ts # Registration, password hashing, session tracking
-│   │   ├── validators/        # Request validation schemas (Zod)
-│   │   │   └── auth.validators.ts # Input validation & normalization
+│   │   │   ├── auth.service.ts  # Password hashing, JWT sessions, revocation
+│   │   │   └── posts.service.ts # Post queries, safe author selects, ownership enforcement
+│   │   ├── validators/        # Zod request validators
+│   │   │   ├── auth.validators.ts  # Input validation & normalization
+│   │   │   └── posts.validators.ts # UUID, title, content, category validation
 │   │   ├── __tests__/         # Automated test suites
-│   │   │   ├── auth.api.test.ts # API integration tests (16 tests)
-│   │   │   └── auth.validators.test.ts # Validator unit tests (10 tests)
-│   │   ├── app.ts             # Express app setup & CORS configuration
-│   │   └── server.ts          # HTTP server entry point
-│   ├── .env.example           # Backend environment template
+│   │   │   ├── auth.validators.test.ts # 10 unit tests
+│   │   │   ├── auth.api.test.ts        # 16 integration tests
+│   │   │   └── posts.api.test.ts       # 17 CRUD integration tests
+│   │   ├── app.ts             # Express application & route registration
+│   │   └── server.ts          # Server entry point
 │   ├── package.json           # Backend dependencies & scripts
-│   ├── prisma.config.ts       # Prisma 7 central configuration file
 │   └── tsconfig.json          # TypeScript configuration
 ├── docs/                      # Architectural & design documentation
-│   └── database-erd.md        # Relational ERD & schema documentation
-├── .editorconfig              # Editor formatting rules
-├── .gitignore                 # Git ignore rules
-└── README.md                  # Main documentation
+│   ├── database-erd.md        # Relational ERD & schema documentation
+│   └── phase-5-final-report.md# Comprehensive Phase 5 report
+├── README.md                  # Main documentation
+└── .gitignore                 # Git ignore rules
 ```
-
-## 📋 Prerequisites
-
-- **Node.js** >= 18.x (tested with v25.7.0)
-- **npm** >= 9.x (tested with v11.10.1)
-- **Git** >= 2.x
-- **PostgreSQL** >= 14.x (local instance or cloud Supabase project)
 
 ---
 
-## 🔐 Frontend Authentication & Token Architecture (Phase 4)
+## 📡 Backend API Endpoints
 
-### 1. In-Memory Token Security Model
-- **Strict RAM-Only Storage**: Access tokens returned by the backend are stored exclusively in an in-memory module variable (`inMemoryAccessToken` in `frontend/src/api/client.ts`).
-- **No Web Storage / No XSS Token Theft**: Tokens are **never** persisted to `localStorage`, `sessionStorage`, `IndexedDB`, or JavaScript-readable cookies. This neutralizes cross-site scripting (XSS) token extraction.
-- **Page Reload Behavior**: Because tokens exist solely in RAM, refreshing the browser safely resets authentication state, requiring the user to sign in again. This is an intentional security design choice for Phase 4.
-- **No Client JWT Decoding**: The frontend does not verify or decode JWT signatures locally. The backend remains the sole authoritative source of session validity.
+### 1. Blog Post CRUD Endpoints (`/api/v1/posts`)
 
-### 2. Centralized Axios API Client
-- **Base URL Configuration**: Configured with `import.meta.env.VITE_API_BASE_URL` (defaulting to `http://localhost:4000/api/v1`).
-- **Bearer Token Request Interceptor**: Automatically attaches the `Authorization: Bearer <token>` header to outgoing HTTP requests whenever a token exists in memory.
-- **Error Normalization (`extractApiError`)**: Parses field-level errors (e.g. Zod validation arrays), 401 unauthenticated errors, and network connectivity dropouts into user-friendly messages without exposing internal stack traces or secrets.
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/posts` | **Public** | Retrieves all posts sorted newest first (`createdAt: 'desc'`) with safe author info. |
+| `GET` | `/api/v1/posts/:id` | **Public** | Retrieves full post details by UUID. Returns 404 if not found, 400 if invalid UUID. |
+| `POST` | `/api/v1/posts` | **Protected** | Creates new post. `authorId` is strictly assigned from verified JWT token context. |
+| `PUT` | `/api/v1/posts/:id` | **Protected** | Updates post. Enforces ownership: returns 403 Forbidden if current user is not author. |
+| `DELETE` | `/api/v1/posts/:id` | **Protected** | Deletes post. Enforces ownership: returns 403 Forbidden if current user is not author. |
 
-### 3. Application State & Provider (`AuthProvider`)
-The application exposes authentication state and actions through the `useAuth()` hook:
-- `user: User | null`: The currently authenticated user object (`id`, `name`, `email`, `avatarUrl`, `createdAt`).
-- `isAuthenticated: boolean`: Boolean derived from the presence of both active user profile and valid memory token.
-- `isLoading: boolean`: Loading state indicator during authentication transitions.
-- `register(payload)`: Submits registration, caches token in memory, sets user state, and navigates to `/profile`.
-- `login(payload)`: Authenticates credentials, caches token in memory, sets user state, and navigates to destination.
-- `logout()`: Dispatches revocation request to `POST /api/v1/auth/logout`, clears token from memory, and resets auth state.
-- `refreshUser()`: Queries `GET /api/v1/auth/me` to refresh the active profile using the bearer token.
+#### Request Validation Rules (Zod):
+- `title`: String, trimmed, min 1 character, max 255 characters.
+- `content`: String, trimmed, min 1 character, max 50,000 characters.
+- `category`: String, optional, max 100 characters (saved as `null` if empty).
+- `id`: Valid UUID v4.
 
-### 4. Routing & Protected Routes (`ProtectedRoute`)
-Using **React Router v7**:
-- `/` — **Home Page**: Public landing page featuring responsive hero, dynamic action buttons based on auth state, and status cards.
-- `/login` — **Login Page**: Sign-in form with real-time field validation, 401 credential error banner, and redirect preservation.
-- `/register` — **Register Page**: Account creation with name, email, password, and password confirmation checks (enforcing 8 characters minimum and 72 bytes UTF-8 maximum).
-- `/profile` — **Profile Page (Protected)**: Requires authentication. Automatically redirects unauthenticated visitors to `/login`. Fetches live account details directly from `GET /api/v1/auth/me` to verify backend Bearer token authorization.
-- `*` — Wildcard redirect back to `/`.
+#### Sensitive Data Security:
+- Author info returned in post responses contains only `{ id, name, avatarUrl }`.
+- Password hashes, user emails, and database sessions are **strictly excluded** from post responses.
+
+### 2. Authentication Endpoints (`/api/v1/auth`)
+
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `POST` | `/api/v1/auth/register` | Public | Registers new author with bcrypt (12 rounds) and creates active database session. |
+| `POST` | `/api/v1/auth/login` | Public | Verifies credentials and issues JWT token with database session tracking. |
+| `POST` | `/api/v1/auth/logout` | Protected | Instantly revokes session in PostgreSQL (`revokedAt = NOW()`). |
+| `GET` | `/api/v1/auth/me` | Protected | Retrieves current user profile from database using Bearer token. |
+
+### 3. Diagnostic Endpoints (`/api/v1/health`)
+- `GET /api/v1/health` — Basic API health check
+- `GET /api/v1/health/db` — PostgreSQL connection and latency check
 
 ---
 
-## 🚀 Getting Started
+## 💻 Frontend Routes & Navigation
 
-### 1. Clone the repository
-
-```bash
-git clone <repository-url>
-cd talent-growth
-```
-
-### 2. Set up environment variables
-
-Copy the example environment files:
-
-```bash
-# Frontend
-cp frontend/.env.example frontend/.env
-
-# Backend
-cp backend/.env.example backend/.env
-```
-
-Ensure `frontend/.env` contains:
-```env
-VITE_API_BASE_URL=http://localhost:4000/api/v1
-```
-
-In `backend/.env`, configure your PostgreSQL credentials and a secure `JWT_SECRET` (minimum 32 characters):
-```env
-PORT=4000
-FRONTEND_URL=http://localhost:5173
-DATABASE_URL="postgresql://postgres:password@localhost:5432/talent_growth_dev?schema=public"
-DIRECT_URL="postgresql://postgres:password@localhost:5432/talent_growth_dev?schema=public"
-JWT_SECRET="replace-with-a-random-secret-of-at-least-32-characters"
-JWT_ISSUER="talent-growth-api"
-JWT_AUDIENCE="talent-growth-web"
-JWT_ACCESS_TOKEN_TTL_SECONDS=900
-```
-
-### 3. Install dependencies
-
-```bash
-# Install frontend packages (React 19, React Router v7, Axios, Oxlint, Vite)
-cd frontend
-npm install
-
-# Install backend packages (Express, Prisma, bcrypt, jsonwebtoken, Zod, Vitest)
-cd ../backend
-npm install
-```
-
-### 4. Database Setup & Migrations
-
-```bash
-cd backend
-
-# Validate Prisma schema
-npm run db:validate
-
-# Generate Prisma Client
-npm run db:generate
-
-# Apply migrations to development database
-npm run db:migrate:dev
-```
-
-### 5. Run the Applications
-
-You can run both servers concurrently in separate terminal windows:
-
-```bash
-# Terminal 1 — Start Backend Server (runs on http://localhost:4000)
-cd backend
-npm run dev
-
-# Terminal 2 — Start Frontend Application (runs on http://localhost:5173)
-cd frontend
-npm run dev
-```
-
-Open your browser at **http://localhost:5173**.
+| Route | Component | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `/` | `HomePage` | Public | Split-hero with recent essays fetched from PostgreSQL, reading CTAs. |
+| `/essays` | `EssaysPage` | Public | The Archive: complete list of essays with topic category filter pills. |
+| `/essays/:id` | `PostDetailPage` | Public | Reading view in 18px serif/sans layout. Edit & Delete buttons appear **only** for author. |
+| `/essays/new` | `NewPostPage` | **Protected** | Editorial desk for composing and publishing essays with client validation. |
+| `/essays/:id/edit` | `EditPostPage` | **Protected** | Editorial desk for revising essays. Verifies ownership; non-owners get 403 card. |
+| `/profile` | `ProfilePage` | **Protected** | Author workspace displaying account metadata and manager for authored essays. |
+| `/login` | `LoginPage` | Public (Guest) | Split-panel login with error banners and redirect. |
+| `/register` | `RegisterPage` | Public (Guest) | Split-panel registration with UTF-8 byte validation. |
+| `*` | `Navigate` | Public | Wildcard redirect to `/`. |
 
 ---
 
 ## 🧪 Testing & Verification
 
-### Backend Automated Tests (26 Passing)
-Run the full backend test suite covering password hashing, Zod validators, token issuance, session tracking, and revocation:
+### Full Test Suite (43 Passing Tests)
+Run all unit and integration tests across backend authentication and blog post CRUD:
 
 ```bash
 cd backend
 npm test
 ```
 
-### Frontend Production Build & Linting
-Validate TypeScript strict types, production bundling, and code quality:
+Test coverage includes:
+- `auth.validators.test.ts` (10 tests): UTF-8 72-byte passwords, email normalization, required fields.
+- `auth.api.test.ts` (16 tests): Registration, login, duplicate email rejection, session revocation.
+- `posts.api.test.ts` (17 tests): Public reads, safe author filtering, creation with token identity, ownership enforcement for edit/delete, 403 for unauthorized users, 404 for missing records, targeted cleanup.
+
+### Frontend Quality & Typecheck
+Verify strict TypeScript compilation and linting:
 
 ```bash
 cd frontend
 
-# Run Oxlint (0 warnings, 0 errors)
+# Oxlint (0 warnings, 0 errors on 24 files)
 npm run lint
 
 # Compile and build Vite production bundle
@@ -245,46 +219,68 @@ npm run build
 
 ---
 
-## 📡 Backend API Endpoints
+## 🚀 Getting Started
 
-### Health Endpoints
-- `GET /api/v1/health` — Basic API health check
-- `GET /api/v1/health/db` — PostgreSQL connection diagnostic check
+### 1. Prerequisites
+- **Node.js** >= 18.x
+- **PostgreSQL** running locally on port 5432 with database `talent_growth_dev`
 
-### Authentication Endpoints
-- `POST /api/v1/auth/register` — Create account, hash password with bcrypt (12 rounds), issue JWT session
-- `POST /api/v1/auth/login` — Verify credentials, issue JWT session
-- `POST /api/v1/auth/logout` — Revoke active database session (`revokedAt` timestamp updated)
-- `GET /api/v1/auth/me` — Retrieve live user profile using `Authorization: Bearer <token>`
+### 2. Environment Setup
+
+**Backend (`backend/.env`):**
+```env
+PORT=4000
+NODE_ENV=development
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/talent_growth_dev"
+JWT_SECRET="your-secure-jwt-secret-here"
+FRONTEND_URL="http://localhost:5173"
+```
+
+**Frontend (`frontend/.env`):**
+```env
+VITE_API_BASE_URL="http://localhost:4000/api/v1"
+```
+
+### 3. Database Migration
+```bash
+cd backend
+npm install
+npm run db:migrate:dev
+```
+
+### 4. Running the Dev Servers
+```bash
+# Terminal 1 — Backend (http://localhost:4000)
+cd backend
+npm run dev
+
+# Terminal 2 — Frontend (http://localhost:5173)
+cd frontend
+npm run dev
+```
 
 ---
 
-## 🎨 UI/UX & Design System
+## ✅ Current Status (Phase 5 Completed)
 
-The frontend is styled using custom vanilla CSS design tokens (no bulky UI frameworks or generic templates):
-- **Dark Theme Palette**: Deep slate background (`#0f172a`), refined cards (`#1e293b`), and indigo/cyan primary accents.
-- **Anti-AI Slop Hierarchy**: Crisp typography, intentional spacing, subtle borders (`rgba(255, 255, 255, 0.08)`), and restrained micro-animations.
-- **Accessible Forms**: Standard HTML5 semantic labels, clear focus indicators (`outline: 2px solid var(--color-primary-light)`), descriptive inline error messages, and `prefers-reduced-motion` compliance.
-- **Honest Empty States**: Clean profile view indicating that published blog articles will appear in Phase 5 without fabricated database items.
+- [x] **Phase 1**: Full-stack scaffolding (React 19 + Express + TypeScript)
+- [x] **Phase 2**: PostgreSQL schema, Prisma ORM v7, database health checks
+- [x] **Phase 3**: JWT authentication, bcrypt (12 rounds), session revocation, 26 tests
+- [x] **Phase 4**: Frontend authentication integration, in-memory tokens, protected routes, Aurora visual system
+- [x] **Phase 5**: Full-Stack Blog Post CRUD & Aurora Editorial Experience:
+  - [x] Backend CRUD endpoints (`GET /posts`, `GET /posts/:id`, `POST /posts`, `PUT /posts/:id`, `DELETE /posts/:id`)
+  - [x] Server-side Zod validation and safe author queries (no leaked password hashes)
+  - [x] Strict ownership authorization (403 Forbidden for non-authors on update and delete)
+  - [x] 17 new Vitest integration tests (total 43 passing tests) with safe cleanup
+  - [x] Frontend `postsApi` service integrated into centralized `apiClient`
+  - [x] The Archive (`/essays`) with topic category filters
+  - [x] Reading view (`/essays/:id`) with 18px body, line-height 1.85, and owner action buttons
+  - [x] Composition desk (`/essays/new`) and Revision desk (`/essays/:id/edit`)
+  - [x] Accessible `DeleteConfirmModal` with permanent deletion warning
+  - [x] Live PostgreSQL posts integrated into `HomePage` and authored posts in `ProfilePage`
+  - [x] Zero browser inspection rule respected; frontend build and oxlint 100% clean
 
 ---
-
-## ✅ Current Status (Phase 4 Completed)
-
-- [x] Phase 1: Project initialization & scaffolding (React, Express, TypeScript)
-- [x] Phase 2: PostgreSQL relational schema, Prisma ORM v7, database health diagnostics
-- [x] Phase 3: JWT authentication, bcrypt (12 rounds), session tracking, instant revocation, 26 backend tests
-- [x] Phase 4: React frontend authentication integration:
-  - [x] Centralized Axios client with in-memory Bearer token store
-  - [x] `AuthProvider` & `useAuth` hook for centralized auth state management
-  - [x] Public routes: `/` (Home), `/login` (Login), `/register` (Register)
-  - [x] Protected routes: `/profile` with route guard (`ProtectedRoute`)
-  - [x] Live profile verification via backend `GET /api/v1/auth/me`
-  - [x] Logout integration calling `POST /api/v1/auth/logout` and clearing memory state
-  - [x] Auth-aware dynamic Navbar with responsive mobile navigation
-  - [x] Form validation (UTF-8 72-byte password limit, matching confirmation, required fields)
-  - [x] Zero-storage security (0 bytes in `localStorage` / `sessionStorage`)
-  - [x] Production build and Oxlint passing with 0 errors and 0 warnings
 
 ## 🗺️ Roadmap
 
@@ -293,14 +289,14 @@ The frontend is styled using custom vanilla CSS design tokens (no bulky UI frame
 | 1     | Project initialization & scaffolding           | ✅ Done     |
 | 2     | Database setup (PostgreSQL + Prisma)           | ✅ Done     |
 | 3     | Authentication (JWT, bcrypt, session tracking) | ✅ Done     |
-| 4     | Frontend Auth Integration (UI, login, register)| ✅ Done     |
-| 5     | Blog post CRUD                                 | ⏳ Upcoming |
+| 4     | Frontend Auth Integration (In-Memory RAM)      | ✅ Done     |
+| 5     | Blog post CRUD & Aurora Editorial Experience   | ✅ Done     |
 | 6     | Comments system                                | ⏳ Upcoming |
-| 7     | User profiles & authorization                  | ⏳ Upcoming |
+| 7     | User profiles & author directory               | ⏳ Upcoming |
 | 8     | Search, pagination, markdown                   | ⏳ Upcoming |
-| 9     | Photo upload                                   | ⏳ Upcoming |
+| 9     | Photo upload & media management                | ⏳ Upcoming |
 | 10    | Testing & Polish                               | ⏳ Upcoming |
-| 11    | Deployment                                     | ⏳ Upcoming |
+| 11    | Deployment (Vercel, Railway, Supabase)         | ⏳ Upcoming |
 
 ---
 

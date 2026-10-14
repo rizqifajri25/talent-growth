@@ -45,22 +45,39 @@ export const Navbar: React.FC = () => {
             Home
           </NavLink>
 
-          <a href="#essays" className="nav-link">
+          <NavLink
+            to="/essays"
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
+          >
             Essays
-          </a>
-          <a href="#topics" className="nav-link">
+          </NavLink>
+
+          {/* Planned modules kept as clear upcoming indicators */}
+          <span
+            className="nav-link nav-link-disabled"
+            title="Topic taxonomy arriving in Phase 8"
+            aria-disabled="true"
+          >
             Topics
-          </a>
-          <a href="#writers" className="nav-link">
+          </span>
+          <span
+            className="nav-link nav-link-disabled"
+            title="Author directory arriving in Phase 7"
+            aria-disabled="true"
+          >
             Writers
-          </a>
+          </span>
         </nav>
 
         {/* Action Group */}
         <div className="nav-actions">
           {isAuthenticated && user ? (
             <>
-              <Link to="/profile" className="nav-link" aria-label="View profile">
+              <Link to="/essays/new" className="btn-write-nav">
+                <span>Write an essay</span>
+                <span aria-hidden="true">↗</span>
+              </Link>
+              <Link to="/profile" className="nav-link" aria-label="View author profile">
                 <span className="user-monogram-nav" aria-hidden="true">
                   {getInitials(user.name)}
                 </span>
@@ -112,8 +129,23 @@ export const Navbar: React.FC = () => {
             Home
           </NavLink>
 
+          <NavLink
+            to="/essays"
+            className="nav-link"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Essays
+          </NavLink>
+
           {isAuthenticated && user ? (
             <>
+              <NavLink
+                to="/essays/new"
+                className="nav-link"
+                onClick={() => setMobileMenuOpen(false)}
+              >
+                Write an Essay ↗
+              </NavLink>
               <NavLink
                 to="/profile"
                 className="nav-link"

@@ -6,6 +6,10 @@ import { HomePage } from './pages/HomePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { EssaysPage } from './pages/EssaysPage';
+import { PostDetailPage } from './pages/PostDetailPage';
+import { NewPostPage } from './pages/NewPostPage';
+import { EditPostPage } from './pages/EditPostPage';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import './App.css';
 
@@ -15,9 +19,32 @@ const App: React.FC = () => {
       <AuthProvider>
         <Routes>
           <Route path="/" element={<AppLayout />}>
+            {/* Public Landing & Essay Reading Routes */}
             <Route index element={<HomePage />} />
+            <Route path="essays" element={<EssaysPage />} />
+            <Route path="essays/:id" element={<PostDetailPage />} />
+
+            {/* Public Guest Auth Routes */}
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
+
+            {/* Protected Author Routes */}
+            <Route
+              path="essays/new"
+              element={
+                <ProtectedRoute>
+                  <NewPostPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="essays/:id/edit"
+              element={
+                <ProtectedRoute>
+                  <EditPostPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="profile"
               element={
@@ -26,7 +53,8 @@ const App: React.FC = () => {
                 </ProtectedRoute>
               }
             />
-            {/* Catch-all route redirects to home */}
+
+            {/* Wildcard redirect to home */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Routes>
