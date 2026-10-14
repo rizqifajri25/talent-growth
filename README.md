@@ -8,36 +8,54 @@ Talent Growth Blog Platform is a web application that enables users to create, r
 
 ## 🛠️ Tech Stack
 
-| Layer      | Technology                                              | Status                 |
-| ---------- | ------------------------------------------------------- | ---------------------- |
-| Frontend   | React, TypeScript, Vite                                 | ✅ Scaffolded (Phase 1) |
-| Backend    | Node.js, Express.js, TypeScript                         | ✅ Scaffolded (Phase 1) |
-| Database   | PostgreSQL (local / Supabase)                           | ✅ Designed (Phase 2)   |
-| ORM        | Prisma ORM (v7.10.0 + `@prisma/adapter-pg`)              | ✅ Configured (Phase 2) |
-| Auth       | JWT (HS256) + bcrypt (12 rounds) + Zod                  | ✅ Implemented (Phase 3)|
-| Testing    | Vitest, Supertest                                       | ✅ Implemented (Phase 3)|
-| HTTP Client| Axios                                                   | ⏳ Planned             |
-| Deployment | Vercel (Frontend), Railway (Backend), Supabase (DB)     | ⏳ Planned             |
+| Layer       | Technology                                              | Status                  |
+| ----------- | ------------------------------------------------------- | ----------------------- |
+| Frontend    | React 19, TypeScript, Vite, React Router v7             | ✅ Integrated (Phase 4) |
+| Backend     | Node.js, Express.js, TypeScript                         | ✅ Scaffolded (Phase 1) |
+| Database    | PostgreSQL (local / Supabase)                           | ✅ Designed (Phase 2)   |
+| ORM         | Prisma ORM (v7.10.0 + `@prisma/adapter-pg`)              | ✅ Configured (Phase 2) |
+| Auth        | JWT (HS256) + bcrypt (12 rounds) + Zod + In-Memory Token| ✅ Integrated (Phase 4) |
+| Testing     | Vitest, Supertest                                       | ✅ Passing 26/26 Tests  |
+| HTTP Client | Axios (Centralized instance with Bearer interceptor)    | ✅ Implemented (Phase 4)|
+| Deployment  | Vercel (Frontend), Railway (Backend), Supabase (DB)     | ⏳ Planned              |
 
 ## 📁 Project Structure
 
 ```
 talent-growth/
-├── frontend/                  # React + Vite application
-│   ├── public/                # Static assets
+├── frontend/                  # React + TypeScript + Vite application
+│   ├── public/                # Static public assets
 │   ├── src/
+│   │   ├── api/               # Centralized API layer
+│   │   │   ├── client.ts      # Axios instance, in-memory tokenStore, interceptors
+│   │   │   └── auth.api.ts    # Typed auth service (register, login, logout, getMe)
 │   │   ├── assets/            # Images, icons, media
-│   │   ├── components/        # Reusable React components
-│   │   ├── pages/             # Page-level components
-│   │   ├── App.tsx            # Root application component
-│   │   ├── App.css            # App-level styles
-│   │   ├── index.css          # Global styles & design tokens
-│   │   └── main.tsx           # Application entry point
-│   ├── .env.example           # Environment variable template
-│   ├── index.html             # HTML entry point
-│   ├── package.json           # Frontend dependencies & scripts
+│   │   ├── components/        # Reusable components
+│   │   │   ├── auth/          # Authentication guards
+│   │   │   │   └── ProtectedRoute.tsx # Route guard redirecting to /login
+│   │   │   └── layout/        # Layout components
+│   │   │       ├── AppLayout.tsx # Shell layout with Navbar and Footer
+│   │   │       └── Navbar.tsx # Auth-aware navigation & mobile menu
+│   │   ├── context/           # React context providers & hooks
+│   │   │   ├── authContextDef.ts # Context definition (React Refresh safe)
+│   │   │   ├── AuthContext.tsx   # AuthProvider managing authentication state
+│   │   │   └── useAuth.ts        # Custom hook for consuming auth context
+│   │   ├── pages/             # Page components
+│   │   │   ├── HomePage.tsx   # Landing page with dynamic auth CTAs
+│   │   │   ├── LoginPage.tsx  # Sign-in form with 401 & network error handling
+│   │   │   ├── RegisterPage.tsx # Account creation with client & server validation
+│   │   │   └── ProfilePage.tsx  # Protected profile with live /auth/me data
+│   │   ├── types/             # TypeScript interfaces & types
+│   │   │   └── auth.types.ts  # User, session, payload, and response types
+│   │   ├── App.tsx            # Root router & provider configuration
+│   │   ├── App.css            # Bespoke dark theme & responsive UI styles
+│   │   ├── index.css          # Design tokens, variables & base styling
+│   │   └── main.tsx           # React entry point
+│   ├── .env.example           # Frontend environment template
+│   ├── index.html             # HTML shell
+│   ├── package.json           # Dependencies (axios, react-router-dom, react 19)
 │   ├── tsconfig.json          # TypeScript configuration
-│   └── vite.config.ts         # Vite configuration
+│   └── vite.config.ts         # Vite build configuration
 ├── backend/                   # Express.js API server
 │   ├── prisma/                # Prisma ORM configuration
 │   │   ├── migrations/        # Version-controlled SQL migrations
@@ -51,7 +69,7 @@ talent-growth/
 │   │   │   └── prisma.ts      # Singleton Prisma Client instance
 │   │   ├── controllers/       # HTTP request controllers
 │   │   │   └── auth.controller.ts # Register, login, logout, getMe
-│   │   ├── generated/         # Generated Prisma Client (CommonJS)
+│   │   ├── generated/         # Generated Prisma Client
 │   │   ├── middleware/        # Express middleware
 │   │   │   └── requireAuth.ts # JWT + database session verification
 │   │   ├── routes/            # Express route definitions
@@ -62,11 +80,11 @@ talent-growth/
 │   │   ├── validators/        # Request validation schemas (Zod)
 │   │   │   └── auth.validators.ts # Input validation & normalization
 │   │   ├── __tests__/         # Automated test suites
-│   │   │   ├── auth.api.test.ts # API integration tests
-│   │   │   └── auth.validators.test.ts # Validator unit tests
-│   │   ├── app.ts             # Express app setup
+│   │   │   ├── auth.api.test.ts # API integration tests (16 tests)
+│   │   │   └── auth.validators.test.ts # Validator unit tests (10 tests)
+│   │   ├── app.ts             # Express app setup & CORS configuration
 │   │   └── server.ts          # HTTP server entry point
-│   ├── .env.example           # Environment variable template
+│   ├── .env.example           # Backend environment template
 │   ├── package.json           # Backend dependencies & scripts
 │   ├── prisma.config.ts       # Prisma 7 central configuration file
 │   └── tsconfig.json          # TypeScript configuration
@@ -74,7 +92,7 @@ talent-growth/
 │   └── database-erd.md        # Relational ERD & schema documentation
 ├── .editorconfig              # Editor formatting rules
 ├── .gitignore                 # Git ignore rules
-└── README.md                  # This file
+└── README.md                  # Main documentation
 ```
 
 ## 📋 Prerequisites
@@ -86,61 +104,36 @@ talent-growth/
 
 ---
 
-## 🔐 Authentication & Session Architecture
+## 🔐 Frontend Authentication & Token Architecture (Phase 4)
 
-The application uses stateful JWT access tokens verified against a database session store:
+### 1. In-Memory Token Security Model
+- **Strict RAM-Only Storage**: Access tokens returned by the backend are stored exclusively in an in-memory module variable (`inMemoryAccessToken` in `frontend/src/api/client.ts`).
+- **No Web Storage / No XSS Token Theft**: Tokens are **never** persisted to `localStorage`, `sessionStorage`, `IndexedDB`, or JavaScript-readable cookies. This neutralizes cross-site scripting (XSS) token extraction.
+- **Page Reload Behavior**: Because tokens exist solely in RAM, refreshing the browser safely resets authentication state, requiring the user to sign in again. This is an intentional security design choice for Phase 4.
+- **No Client JWT Decoding**: The frontend does not verify or decode JWT signatures locally. The backend remains the sole authoritative source of session validity.
 
-1. **Password Hashing (bcrypt)**:
-   - Passwords are encrypted with `bcrypt` using **12 salt rounds**.
-   - Input passwords are restricted to a maximum of **72 bytes in UTF-8** to align with bcrypt's internal algorithm boundary.
-   - Plaintext passwords are never stored, logged, or retained in memory longer than necessary.
-2. **Access Token Generation (JWT)**:
-   - Algorithm: Explicitly set to `HS256`.
-   - Token claims:
-     - `sub`: Authenticated User UUID.
-     - `jti`: Unique session UUID identifier.
-     - `iss`: Configured issuer (`talent-growth-api`).
-     - `aud`: Configured audience (`talent-growth-web`).
-     - `iat`: Issuance timestamp.
-     - `exp`: Expiration timestamp (default: 900 seconds / 15 minutes).
-3. **Session Tracking & Instant Revocation (`AuthSession`)**:
-   - Pure stateless JWTs cannot be revoked immediately when a user logs out.
-   - Every issued access token is tracked in the `auth_sessions` table via its unique `tokenId` (`jti`).
-   - The full JWT is **never** saved in the database; only the `jti` identifier is stored.
-   - When a user logs out (`POST /api/v1/auth/logout`), the `revokedAt` timestamp is updated in PostgreSQL.
-   - The `requireAuth` middleware checks both cryptographic signature and the database session status. Revoked or expired sessions immediately return `HTTP 401 Unauthorized`.
-4. **Input Validation & Sanitization (Zod)**:
-   - Names are trimmed, required, and capped at 80 characters.
-   - Email addresses are trimmed, converted to lowercase, and verified for standard RFC compliance.
-   - Passwords require at least 8 characters and maximum 72 bytes. Passwords are never auto-trimmed to preserve user intent.
+### 2. Centralized Axios API Client
+- **Base URL Configuration**: Configured with `import.meta.env.VITE_API_BASE_URL` (defaulting to `http://localhost:4000/api/v1`).
+- **Bearer Token Request Interceptor**: Automatically attaches the `Authorization: Bearer <token>` header to outgoing HTTP requests whenever a token exists in memory.
+- **Error Normalization (`extractApiError`)**: Parses field-level errors (e.g. Zod validation arrays), 401 unauthenticated errors, and network connectivity dropouts into user-friendly messages without exposing internal stack traces or secrets.
 
----
+### 3. Application State & Provider (`AuthProvider`)
+The application exposes authentication state and actions through the `useAuth()` hook:
+- `user: User | null`: The currently authenticated user object (`id`, `name`, `email`, `avatarUrl`, `createdAt`).
+- `isAuthenticated: boolean`: Boolean derived from the presence of both active user profile and valid memory token.
+- `isLoading: boolean`: Loading state indicator during authentication transitions.
+- `register(payload)`: Submits registration, caches token in memory, sets user state, and navigates to `/profile`.
+- `login(payload)`: Authenticates credentials, caches token in memory, sets user state, and navigates to destination.
+- `logout()`: Dispatches revocation request to `POST /api/v1/auth/logout`, clears token from memory, and resets auth state.
+- `refreshUser()`: Queries `GET /api/v1/auth/me` to refresh the active profile using the bearer token.
 
-## 🗄️ Database Architecture
-
-The application uses **PostgreSQL** as its relational database and **Prisma ORM (v7.10.0)** as its data access layer.
-
-### 1. Data Models
-
-The relational schema consists of four core models:
-
-1. **`User` (`users`)**: Represents platform users.
-   - Fields: `id` (UUID PK), `name` (VarChar), `email` (VarChar Unique), `passwordHash` (VarChar), `avatarUrl` (Text, nullable), `createdAt`, `updatedAt`.
-   - Relations: Has many `Post`, `Comment`, and `AuthSession`.
-2. **`Post` (`posts`)**: Represents blog articles.
-   - Fields: `id` (UUID PK), `title` (VarChar), `content` (Text), `category` (VarChar, nullable), `authorId` (UUID FK -> `users.id`), `createdAt`, `updatedAt`.
-   - Relations: Belongs to `User` (author); has many `Comment`.
-   - Index: Compound index on `(author_id, created_at)`.
-3. **`Comment` (`comments`)**: Represents article comments.
-   - Fields: `id` (UUID PK), `content` (Text), `postId` (UUID FK -> `posts.id`), `authorId` (UUID FK -> `users.id`), `createdAt`, `updatedAt`.
-   - Relations: Belongs to `Post`; belongs to `User`.
-   - Indexes: Compound index on `(post_id, created_at)` and single index on `author_id`.
-4. **`AuthSession` (`auth_sessions`)**: Represents active user sessions and supports token revocation / logout.
-   - Fields: `id` (UUID PK), `userId` (UUID FK -> `users.id`), `tokenId` (VarChar Unique `jti`), `expiresAt`, `revokedAt` (nullable), `createdAt`.
-   - Relations: Belongs to `User`.
-   - Index: Index on `user_id`.
-
-For the complete ERD diagram, column dictionaries, and cardinality details, see [docs/database-erd.md](file:///d:/talent-growth/docs/database-erd.md).
+### 4. Routing & Protected Routes (`ProtectedRoute`)
+Using **React Router v7**:
+- `/` — **Home Page**: Public landing page featuring responsive hero, dynamic action buttons based on auth state, and status cards.
+- `/login` — **Login Page**: Sign-in form with real-time field validation, 401 credential error banner, and redirect preservation.
+- `/register` — **Register Page**: Account creation with name, email, password, and password confirmation checks (enforcing 8 characters minimum and 72 bytes UTF-8 maximum).
+- `/profile` — **Profile Page (Protected)**: Requires authentication. Automatically redirects unauthenticated visitors to `/login`. Fetches live account details directly from `GET /api/v1/auth/me` to verify backend Bearer token authorization.
+- `*` — Wildcard redirect back to `/`.
 
 ---
 
@@ -155,7 +148,7 @@ cd talent-growth
 
 ### 2. Set up environment variables
 
-Copy the example environment files and adjust values:
+Copy the example environment files:
 
 ```bash
 # Frontend
@@ -165,322 +158,133 @@ cp frontend/.env.example frontend/.env
 cp backend/.env.example backend/.env
 ```
 
-Generate a secure random secret for `JWT_SECRET` in `backend/.env` (at least 32 characters, e.g. using `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`).
+Ensure `frontend/.env` contains:
+```env
+VITE_API_BASE_URL=http://localhost:4000/api/v1
+```
+
+In `backend/.env`, configure your PostgreSQL credentials and a secure `JWT_SECRET` (minimum 32 characters):
+```env
+PORT=4000
+FRONTEND_URL=http://localhost:5173
+DATABASE_URL="postgresql://postgres:password@localhost:5432/talent_growth_dev?schema=public"
+DIRECT_URL="postgresql://postgres:password@localhost:5432/talent_growth_dev?schema=public"
+JWT_SECRET="replace-with-a-random-secret-of-at-least-32-characters"
+JWT_ISSUER="talent-growth-api"
+JWT_AUDIENCE="talent-growth-web"
+JWT_ACCESS_TOKEN_TTL_SECONDS=900
+```
 
 ### 3. Install dependencies
 
 ```bash
-# Frontend
+# Install frontend packages (React 19, React Router v7, Axios, Oxlint, Vite)
 cd frontend
 npm install
 
-# Backend
+# Install backend packages (Express, Prisma, bcrypt, jsonwebtoken, Zod, Vitest)
 cd ../backend
 npm install
 ```
 
-### 4. Database Setup (Local or Supabase)
-
-#### Local PostgreSQL:
-1. Ensure PostgreSQL is running on your machine.
-2. Create a development database:
-   ```sql
-   CREATE DATABASE talent_growth_dev;
-   ```
-3. Set `DATABASE_URL` and `DIRECT_URL` in `backend/.env`:
-   ```env
-   DATABASE_URL="postgresql://postgres:your_password@localhost:5432/talent_growth_dev?schema=public"
-   DIRECT_URL="postgresql://postgres:your_password@localhost:5432/talent_growth_dev?schema=public"
-   ```
-
-#### Supabase (Cloud Hosting):
-1. Create a project in [Supabase](https://supabase.com).
-2. Retrieve your connection strings from **Project Settings > Database**:
-   - **Connection Pooling (`DATABASE_URL`)**: Select **Transaction mode** (port `6543`).
-   - **Direct Connection (`DIRECT_URL`)**: Select **Session / Direct mode** (port `5432`).
-3. Set the URLs in `backend/.env`:
-   ```env
-   DATABASE_URL="postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres?pgbouncer=true"
-   DIRECT_URL="postgresql://postgres:[password]@db.[project-ref].supabase.co:5432/postgres"
-   ```
-
-### 5. Validate Schema and Generate Prisma Client
+### 4. Database Setup & Migrations
 
 ```bash
 cd backend
+
+# Validate Prisma schema
 npm run db:validate
+
+# Generate Prisma Client
 npm run db:generate
+
+# Apply migrations to development database
+npm run db:migrate:dev
 ```
 
-### 6. Apply Database Migrations
+### 5. Run the Applications
 
-- **Development workflow** (tracks and applies migration history):
-  ```bash
-  npm run db:migrate:dev
-  ```
-- **Production / Staging deployment** (applies pending migrations without prompting):
-  ```bash
-  npm run db:migrate:deploy
-  ```
-- **Check migration status**:
-  ```bash
-  npm run db:status
-  ```
-- **Inspect database visually with Prisma Studio**:
-  ```bash
-  npm run db:studio
-  ```
-
-### 7. Run Automated Tests
-
-Execute all validator unit tests and API integration tests:
+You can run both servers concurrently in separate terminal windows:
 
 ```bash
+# Terminal 1 — Start Backend Server (runs on http://localhost:4000)
+cd backend
+npm run dev
+
+# Terminal 2 — Start Frontend Application (runs on http://localhost:5173)
+cd frontend
+npm run dev
+```
+
+Open your browser at **http://localhost:5173**.
+
+---
+
+## 🧪 Testing & Verification
+
+### Backend Automated Tests (26 Passing)
+Run the full backend test suite covering password hashing, Zod validators, token issuance, session tracking, and revocation:
+
+```bash
+cd backend
 npm test
 ```
 
-### 8. Run the Applications
+### Frontend Production Build & Linting
+Validate TypeScript strict types, production bundling, and code quality:
 
 ```bash
-# Backend (from backend directory)
-npm run dev
+cd frontend
 
-# Frontend (from frontend directory)
-npm run dev
+# Run Oxlint (0 warnings, 0 errors)
+npm run lint
+
+# Compile and build Vite production bundle
+npm run build
 ```
-
-The frontend runs at **http://localhost:5173** and the backend at **http://localhost:4000**.
 
 ---
 
-## 📡 API Endpoints
+## 📡 Backend API Endpoints
 
 ### Health Endpoints
-
-#### 1. Basic Health Check
-```http
-GET /api/v1/health
-```
-**Response (HTTP 200 OK):**
-```json
-{
-  "success": true,
-  "message": "Talent Growth API is running",
-  "timestamp": "2026-10-14T11:57:17.986Z"
-}
-```
-
-#### 2. Database Health Check
-```http
-GET /api/v1/health/db
-```
-**Response (HTTP 200 OK):**
-```json
-{
-  "success": true,
-  "message": "Database connection is healthy",
-  "status": "connected",
-  "timestamp": "2026-10-14T12:39:10.626Z"
-}
-```
-
----
+- `GET /api/v1/health` — Basic API health check
+- `GET /api/v1/health/db` — PostgreSQL connection diagnostic check
 
 ### Authentication Endpoints
-
-All authentication endpoints use the prefix `/api/v1/auth`.
-
-#### 1. User Registration
-Creates a new user account, stores password hash, creates an active session, and returns an access token.
-
-```http
-POST /api/v1/auth/register
-Content-Type: application/json
-
-{
-  "name": "Budi Santoso",
-  "email": "budi.santoso@example.com",
-  "password": "SecurePassword123!"
-}
-```
-
-**Response (HTTP 201 Created):**
-```json
-{
-  "success": true,
-  "message": "Registration successful",
-  "data": {
-    "user": {
-      "id": "e82d1c68-07cb-4fc4-bb77-9df08f62f3a4",
-      "name": "Budi Santoso",
-      "email": "budi.santoso@example.com",
-      "avatarUrl": null,
-      "createdAt": "2026-10-14T12:45:00.000Z"
-    },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "tokenType": "Bearer",
-    "expiresIn": 900
-  }
-}
-```
-
-**Common Error Responses:**
-- `HTTP 400 Bad Request`: Input validation failed (e.g. name empty, invalid email, password < 8 chars or > 72 bytes).
-- `HTTP 409 Conflict`: An account with this email address already exists.
-
-#### 2. User Login
-Verifies credentials, generates a new session and `jti`, and returns an access token.
-
-```http
-POST /api/v1/auth/login
-Content-Type: application/json
-
-{
-  "email": "budi.santoso@example.com",
-  "password": "SecurePassword123!"
-}
-```
-
-**Response (HTTP 200 OK):**
-```json
-{
-  "success": true,
-  "message": "Login successful",
-  "data": {
-    "user": {
-      "id": "e82d1c68-07cb-4fc4-bb77-9df08f62f3a4",
-      "name": "Budi Santoso",
-      "email": "budi.santoso@example.com",
-      "avatarUrl": null,
-      "createdAt": "2026-10-14T12:45:00.000Z"
-    },
-    "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "tokenType": "Bearer",
-    "expiresIn": 900
-  }
-}
-```
-
-**Common Error Responses:**
-- `HTTP 400 Bad Request`: Invalid request data.
-- `HTTP 401 Unauthorized`: `Invalid email or password.` (Generic message to avoid email enumeration).
-
-#### 3. User Logout (Protected)
-Revokes the session corresponding to the bearer token in PostgreSQL.
-
-```http
-POST /api/v1/auth/logout
-Authorization: Bearer <access_token>
-```
-
-**Response (HTTP 200 OK):**
-```json
-{
-  "success": true,
-  "message": "Logout successful"
-}
-```
-
-#### 4. Current User Profile (Protected)
-Retrieves the profile of the authenticated user.
-
-```http
-GET /api/v1/auth/me
-Authorization: Bearer <access_token>
-```
-
-**Response (HTTP 200 OK):**
-```json
-{
-  "success": true,
-  "message": "Current user retrieved successfully",
-  "data": {
-    "user": {
-      "id": "e82d1c68-07cb-4fc4-bb77-9df08f62f3a4",
-      "name": "Budi Santoso",
-      "email": "budi.santoso@example.com",
-      "avatarUrl": null,
-      "createdAt": "2026-10-14T12:45:00.000Z",
-      "updatedAt": "2026-10-14T12:45:00.000Z"
-    }
-  }
-}
-```
-
-**Common Protected Error Responses:**
-- `HTTP 401 Unauthorized`: Missing header, invalid format, invalid cryptographic signature, expired token, or revoked session.
+- `POST /api/v1/auth/register` — Create account, hash password with bcrypt (12 rounds), issue JWT session
+- `POST /api/v1/auth/login` — Verify credentials, issue JWT session
+- `POST /api/v1/auth/logout` — Revoke active database session (`revokedAt` timestamp updated)
+- `GET /api/v1/auth/me` — Retrieve live user profile using `Authorization: Bearer <token>`
 
 ---
 
-## 🔧 Environment Variables
+## 🎨 UI/UX & Design System
 
-### Backend (`backend/.env`)
-
-| Variable                       | Description                                               | Example / Default Value                                               |
-| ------------------------------ | --------------------------------------------------------- | --------------------------------------------------------------------- |
-| `PORT`                         | HTTP port the API server listens on                       | `4000`                                                                |
-| `FRONTEND_URL`                 | Origin URL allowed by CORS                                | `http://localhost:5173`                                               |
-| `DATABASE_URL`                 | Pooled PostgreSQL connection string for runtime queries   | `postgresql://postgres:password@localhost:5432/talent_growth_dev?schema=public` |
-| `DIRECT_URL`                   | Direct PostgreSQL connection string for Prisma migrations | `postgresql://postgres:password@localhost:5432/talent_growth_dev?schema=public` |
-| `JWT_SECRET`                   | Cryptographic secret for signing JWT access tokens (>= 32 chars) | `replace-with-a-random-secret-of-at-least-32-characters`              |
-| `JWT_ISSUER`                   | Expected JWT issuer claim (`iss`)                         | `talent-growth-api`                                                   |
-| `JWT_AUDIENCE`                 | Expected JWT audience claim (`aud`)                       | `talent-growth-web`                                                   |
-| `JWT_ACCESS_TOKEN_TTL_SECONDS` | Token time-to-live in seconds                             | `900` (15 minutes)                                                    |
+The frontend is styled using custom vanilla CSS design tokens (no bulky UI frameworks or generic templates):
+- **Dark Theme Palette**: Deep slate background (`#0f172a`), refined cards (`#1e293b`), and indigo/cyan primary accents.
+- **Anti-AI Slop Hierarchy**: Crisp typography, intentional spacing, subtle borders (`rgba(255, 255, 255, 0.08)`), and restrained micro-animations.
+- **Accessible Forms**: Standard HTML5 semantic labels, clear focus indicators (`outline: 2px solid var(--color-primary-light)`), descriptive inline error messages, and `prefers-reduced-motion` compliance.
+- **Honest Empty States**: Clean profile view indicating that published blog articles will appear in Phase 5 without fabricated database items.
 
 ---
 
-## 📜 Available Scripts
+## ✅ Current Status (Phase 4 Completed)
 
-### Backend
-
-| Script                 | Command                  | Description                                            |
-| ---------------------- | ------------------------ | ------------------------------------------------------ |
-| `npm run dev`          | `tsx watch src/server.ts`| Start development server with hot reload               |
-| `npm run build`        | `npm run db:generate && tsc` | Generate Prisma client and compile TypeScript      |
-| `npm start`            | `node dist/server.js`    | Run compiled production server                         |
-| `npm test`             | `vitest run`             | Run all automated unit and integration tests           |
-| `npm run db:validate`  | `prisma validate`        | Validate Prisma schema syntax and model definitions    |
-| `npm run db:generate`  | `prisma generate`        | Generate Prisma Client for TypeScript / CommonJS       |
-| `npm run db:migrate:dev`| `prisma migrate dev`    | Create and apply migrations in development             |
-| `npm run db:migrate:deploy`| `prisma migrate deploy`| Apply pending migrations in production / staging     |
-| `npm run db:status`    | `prisma migrate status`  | Check status of database migrations                   |
-| `npm run db:studio`    | `prisma studio`          | Launch interactive web GUI to view and edit data       |
-
----
-
-## 🏗️ Design Decisions
-
-1. **Stateful JWT with Database Sessions**:
-   - While JWTs carry claims statelessly, tracking active session identifiers (`jti`) in PostgreSQL gives the server immediate revocation power upon logout or suspicious activity without storing bloated tokens.
-2. **Password Hashing with bcrypt**:
-   - bcrypt with 12 rounds provides strong protection against rainbow tables and brute-force attacks while maintaining fast enough response times for user registration and login.
-3. **Decoupled Architecture**:
-   - Validators (`Zod`), Services (business logic & transactions), Controllers (HTTP handling), and Middleware (`requireAuth`) are strictly separated for clean testability and maintainability.
-4. **Targeted Integration Test Cleanup**:
-   - Integration tests connect to the local development database using dynamically generated random emails (`test_<uuid>@example.com`). Tests strictly delete only their created records upon completion and never reset or wipe database tables.
-
----
-
-## ✅ Current Status (Phase 3 Completed)
-
-- [x] Repository initialized with Git (Phase 1)
-- [x] Frontend scaffolded with React + TypeScript + Vite (Phase 1)
-- [x] Backend scaffolded with Express + TypeScript (Phase 1)
-- [x] Basic HTTP health check endpoint (`GET /api/v1/health`) (Phase 1)
-- [x] PostgreSQL relational schema designed (`User`, `Post`, `Comment`, `AuthSession`) (Phase 2)
-- [x] Entity Relationship Diagram and architecture documentation (`docs/database-erd.md`) (Phase 2)
-- [x] Prisma ORM v7 configured with PostgreSQL adapter (`@prisma/adapter-pg`) (Phase 2)
-- [x] Initial migration applied to local database `talent_growth_dev` (Phase 2)
-- [x] Diagnostic database health endpoint added (`GET /api/v1/health/db`) (Phase 2)
-- [x] Password hashing with bcrypt (12 rounds) & 72-byte UTF-8 enforcement (Phase 3)
-- [x] JWT token signing & verification with HS256, issuer, audience, and expiration (Phase 3)
-- [x] Zod validation schemas for register & login with error normalization (Phase 3)
-- [x] Registration endpoint (`POST /api/v1/auth/register`) with atomic session creation (Phase 3)
-- [x] Login endpoint (`POST /api/v1/auth/login`) with generic error messages (Phase 3)
-- [x] Logout endpoint (`POST /api/v1/auth/logout`) with session revocation in database (Phase 3)
-- [x] Current user profile endpoint (`GET /api/v1/auth/me`) (Phase 3)
-- [x] `requireAuth` middleware with token and PostgreSQL session verification (Phase 3)
-- [x] Full automated test suite (26 passing tests with Vitest & Supertest) (Phase 3)
+- [x] Phase 1: Project initialization & scaffolding (React, Express, TypeScript)
+- [x] Phase 2: PostgreSQL relational schema, Prisma ORM v7, database health diagnostics
+- [x] Phase 3: JWT authentication, bcrypt (12 rounds), session tracking, instant revocation, 26 backend tests
+- [x] Phase 4: React frontend authentication integration:
+  - [x] Centralized Axios client with in-memory Bearer token store
+  - [x] `AuthProvider` & `useAuth` hook for centralized auth state management
+  - [x] Public routes: `/` (Home), `/login` (Login), `/register` (Register)
+  - [x] Protected routes: `/profile` with route guard (`ProtectedRoute`)
+  - [x] Live profile verification via backend `GET /api/v1/auth/me`
+  - [x] Logout integration calling `POST /api/v1/auth/logout` and clearing memory state
+  - [x] Auth-aware dynamic Navbar with responsive mobile navigation
+  - [x] Form validation (UTF-8 72-byte password limit, matching confirmation, required fields)
+  - [x] Zero-storage security (0 bytes in `localStorage` / `sessionStorage`)
+  - [x] Production build and Oxlint passing with 0 errors and 0 warnings
 
 ## 🗺️ Roadmap
 
@@ -489,7 +293,7 @@ Authorization: Bearer <access_token>
 | 1     | Project initialization & scaffolding           | ✅ Done     |
 | 2     | Database setup (PostgreSQL + Prisma)           | ✅ Done     |
 | 3     | Authentication (JWT, bcrypt, session tracking) | ✅ Done     |
-| 4     | Frontend Auth Integration (UI, login, register)| ⏳ Upcoming |
+| 4     | Frontend Auth Integration (UI, login, register)| ✅ Done     |
 | 5     | Blog post CRUD                                 | ⏳ Upcoming |
 | 6     | Comments system                                | ⏳ Upcoming |
 | 7     | User profiles & authorization                  | ⏳ Upcoming |

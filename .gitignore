@@ -32,3 +32,7 @@ desktop.ini
 
 # Misc
 *.tsbuildinfo
+
+# Local Agent Skills
+.agents/
+skills-lock.json
