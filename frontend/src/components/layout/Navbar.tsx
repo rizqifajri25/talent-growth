@@ -71,40 +71,43 @@ export const Navbar: React.FC = () => {
 
         {/* Action Group */}
         <div className="nav-actions">
-          {isAuthenticated && user ? (
-            <>
-              <Link to="/essays/new" className="btn-write-nav">
-                <span>Write an essay</span>
-                <span aria-hidden="true">↗</span>
-              </Link>
-              <Link to="/profile" className="nav-link" aria-label="View author profile">
-                <span className="user-monogram-nav" aria-hidden="true">
-                  {getInitials(user.name)}
-                </span>
-              </Link>
-              <button
-                type="button"
-                className="btn-logout-ghost"
-                onClick={handleLogout}
-                disabled={isLoggingOut || isLoading}
-                aria-label="Log out of account"
-              >
-                {isLoggingOut ? 'Logging out...' : 'Log out'}
-              </button>
-            </>
-          ) : (
-            <>
-              <Link to="/login" className="nav-link">
-                Sign In
-              </Link>
-              <Link to="/register" className="btn-black-pill">
-                <span>Get Started</span>
-                <span aria-hidden="true">↗</span>
-              </Link>
-            </>
-          )}
+          {/* Desktop-only actions */}
+          <div className="nav-actions-desktop">
+            {isAuthenticated && user ? (
+              <>
+                <Link to="/essays/new" className="btn-write-nav">
+                  <span>Write an essay</span>
+                  <span aria-hidden="true">↗</span>
+                </Link>
+                <Link to="/profile" className="nav-link" aria-label="View author profile">
+                  <span className="user-monogram-nav" aria-hidden="true">
+                    {getInitials(user.name)}
+                  </span>
+                </Link>
+                <button
+                  type="button"
+                  className="btn-logout-ghost"
+                  onClick={handleLogout}
+                  disabled={isLoggingOut || isLoading}
+                  aria-label="Log out of account"
+                >
+                  {isLoggingOut ? 'Logging out...' : 'Log out'}
+                </button>
+              </>
+            ) : (
+              <>
+                <Link to="/login" className="nav-link">
+                  Sign In
+                </Link>
+                <Link to="/register" className="btn-black-pill">
+                  <span>Get Started</span>
+                  <span aria-hidden="true">↗</span>
+                </Link>
+              </>
+            )}
+          </div>
 
-          {/* Mobile Hamburger Button */}
+          {/* Mobile Hamburger Button (Only element shown in header bar on mobile) */}
           <button
             type="button"
             className="mobile-menu-toggle"
