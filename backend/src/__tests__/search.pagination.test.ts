@@ -175,8 +175,8 @@ describe('Phase 8: Search and Pagination API Tests', () => {
     });
 
     it('retrieves distinct items between page 1 and page 2 without duplication', async () => {
-      const resPage1 = await request(app).get('/api/v1/posts?limit=2&page=1');
-      const resPage2 = await request(app).get('/api/v1/posts?limit=2&page=2');
+      const resPage1 = await request(app).get(`/api/v1/posts?q=${uniqueKeyword}&limit=1&page=1`);
+      const resPage2 = await request(app).get(`/api/v1/posts?q=${uniqueKeyword}&limit=1&page=2`);
 
       expect(resPage1.status).toBe(200);
       expect(resPage2.status).toBe(200);
@@ -184,8 +184,8 @@ describe('Phase 8: Search and Pagination API Tests', () => {
       const page1Ids = resPage1.body.data.posts.map((p: any) => p.id);
       const page2Ids = resPage2.body.data.posts.map((p: any) => p.id);
 
-      expect(page1Ids.length).toBe(2);
-      expect(page2Ids.length).toBe(2);
+      expect(page1Ids.length).toBe(1);
+      expect(page2Ids.length).toBe(1);
 
       // Verify no overlap
       const overlap = page1Ids.filter((id: string) => page2Ids.includes(id));
@@ -195,6 +195,7 @@ describe('Phase 8: Search and Pagination API Tests', () => {
       expect(resPage1.body.data.pagination.hasPreviousPage).toBe(false);
       expect(resPage1.body.data.pagination.hasNextPage).toBe(true);
       expect(resPage2.body.data.pagination.hasPreviousPage).toBe(true);
+      expect(resPage2.body.data.pagination.hasNextPage).toBe(false);
     });
 
     it('returns empty array when page exceeds total pages without error', async () => {

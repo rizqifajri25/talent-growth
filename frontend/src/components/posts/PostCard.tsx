@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import type { Post } from '../../types/posts.types';
+import { getExcerpt } from '../../utils/markdownUtils';
 
 interface PostCardProps {
   post: Post;
@@ -18,13 +19,6 @@ export const PostCard: React.FC<PostCardProps> = ({
     day: 'numeric',
     year: 'numeric',
   }).format(new Date(post.createdAt));
-
-  // Extract a clean excerpt from plain text content (max ~180 characters)
-  const getExcerpt = (text: string, maxLength = 180): string => {
-    const trimmed = text.trim().replace(/\s+/g, ' ');
-    if (trimmed.length <= maxLength) return trimmed;
-    return `${trimmed.substring(0, maxLength).trim()}...`;
-  };
 
   return (
     <article className="aurora-post-card">

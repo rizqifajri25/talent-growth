@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { renderToString } from 'react-dom/server';
 import { MarkdownRenderer } from '../components/markdown/MarkdownRenderer';
+import { stripMarkdown, getExcerpt } from '../utils/markdownUtils';
 
 describe('MarkdownRenderer: Security & Safe Content Rendering', () => {
   it('renders standard Markdown elements (headings, bold, italic, lists, blockquotes)', () => {
@@ -122,3 +123,43 @@ This is a paragraph with **bold text** and *italic perspective*.
     expect(whitespaceHtml).toContain('aurora-markdown-body empty');
   });
 });
+
+describe('markdownUtils: stripMarkdown & getExcerpt for Cards', () => {
+  it('strips markdown syntax cleanly (headings, bold, italic, quotes, lists, links, code)', () => {
+    const rawMarkdown = `
+## Subheading Level 2
+Ini teks **tebal** dan *miring*.
+
+> Ini adalah kutipan inspiratif.
+
+- Poin pertama
+- Poin kedua
+
+[Kunjungi Dokumentasi](https://example.com)
+`;
+    const clean = stripMarkdown(rawMarkdown);
+    expect(clean).toBe(
+      'Subheading Level 2 Ini teks tebal dan miring. Ini adalah kutipan inspiratif. Poin pertama Poin kedua Kunjungi Dokumentasi'
+    );
+    expect(clean).not.toContain('##');
+    expect(clean).not.toContain('**');
+    expect(clean).not.toContain('*');
+    expect(clean).not.toContain('>');
+    expect(clean).not.toContain('http');
+  });
+
+  it('truncates clean excerpt properly when exceeding maxLength', () => {
+    const raw = '## Title\n\n' + 'word '.repeat(50);
+    const excerpt = getExcerpt(raw, 50);
+    expect(excerpt.endsWith('...')).toBe(true);
+    expect(excerpt.length).toBeLessThanOrEqual(53);
+    expect(excerpt).not.toContain('##');
+  });
+
+  it('removes code blocks from excerpts', () => {
+    const raw = '# Intro\n\n```javascript\nconsole.log("secret");\n```\nDiscussion continues.';
+    const clean = stripMarkdown(raw);
+    expect(clean).toBe('Intro Discussion continues.');
+  });
+});
+

@@ -3,6 +3,7 @@ import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { authorsApi } from '../api/authors.api';
 import { extractApiError } from '../api/client';
 import { Pagination } from '../components/common/Pagination';
+import { getExcerpt } from '../utils/markdownUtils';
 import type { PublicAuthorProfile } from '../types/authors.types';
 
 export const PublicAuthorPage: React.FC = () => {
@@ -232,9 +233,7 @@ export const PublicAuthorPage: React.FC = () => {
                   </h3>
 
                   <p className="author-essay-excerpt">
-                    {post.content.length > 180
-                      ? `${post.content.substring(0, 180)}...`
-                      : post.content}
+                    {getExcerpt(post.content)}
                   </p>
 
                   <div className="author-essay-footer">
