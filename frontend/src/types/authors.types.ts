@@ -14,6 +14,8 @@ export interface AuthorPost {
   title: string;
   content: string;
   category: string | null;
+  coverImageUrl?: string | null;
+  coverImageAlt?: string | null;
   createdAt: string;
   updatedAt: string;
 }

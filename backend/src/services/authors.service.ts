@@ -161,6 +161,8 @@ export class AuthorsService {
         title: true,
         content: true,
         category: true,
+        coverImageUrl: true,
+        coverImageAlt: true,
         createdAt: true,
         updatedAt: true,
       },

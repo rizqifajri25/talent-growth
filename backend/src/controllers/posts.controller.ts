@@ -4,6 +4,7 @@ import {
   createPostSchema,
   updatePostSchema,
   postsQuerySchema,
+  postCoverUploadSchema,
   formatZodErrors,
 } from '../validators/posts.validators';
 import {
@@ -11,6 +12,15 @@ import {
   PostNotFoundError,
   ForbiddenPostActionError,
 } from '../services/posts.service';
+import {
+  InvalidImageError,
+  ImageTooLargeError,
+} from '../services/image-processor.service';
+import {
+  mediaStorageService,
+  StorageNotConfiguredError,
+  StorageOperationError,
+} from '../services/media-storage.service';
 
 /**
  * Controller handling blog post HTTP requests.
@@ -264,4 +274,179 @@ export class PostsController {
       });
     }
   }
+
+  /**
+   * POST /api/v1/posts/:id/cover
+   * Protected: Uploads or replaces the cover image for an article. Owner only.
+   */
+  static async uploadCover(req: Request, res: Response): Promise<void> {
+    try {
+      const authorId = req.auth?.userId;
+      if (!authorId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required.',
+        });
+        return;
+      }
+
+      const paramResult = postIdParamSchema.safeParse(req.params);
+      if (!paramResult.success) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid post ID format. Expected a valid UUID.',
+          errors: formatZodErrors(paramResult.error),
+        });
+        return;
+      }
+
+      if (!req.file || !req.file.buffer) {
+        res.status(400).json({
+          success: false,
+          message: 'Cover image file is required.',
+          errors: [{ field: 'cover', message: 'No file uploaded in the "cover" field.' }],
+        });
+        return;
+      }
+
+      const bodyResult = postCoverUploadSchema.safeParse(req.body);
+      if (!bodyResult.success) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid cover metadata.',
+          errors: formatZodErrors(bodyResult.error),
+        });
+        return;
+      }
+
+      if (!mediaStorageService.isConfigured()) {
+        res.status(503).json({
+          success: false,
+          message: 'Media storage is not configured on this server.',
+        });
+        return;
+      }
+
+      const post = await PostsService.uploadPostCover(
+        paramResult.data.id,
+        authorId,
+        req.file.buffer,
+        bodyResult.data.altText
+      );
+
+      res.status(200).json({
+        success: true,
+        message: 'Cover image uploaded successfully',
+        data: {
+          post,
+        },
+      });
+    } catch (error: any) {
+      if (error instanceof PostNotFoundError) {
+        res.status(404).json({
+          success: false,
+          message: 'Post not found.',
+        });
+        return;
+      }
+
+      if (error instanceof ForbiddenPostActionError) {
+        res.status(403).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      if (error instanceof InvalidImageError || error instanceof ImageTooLargeError) {
+        res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      if (error instanceof StorageNotConfiguredError) {
+        res.status(503).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      if (error instanceof StorageOperationError) {
+        res.status(500).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      console.error('Error uploading post cover:', error instanceof Error ? error.message : error);
+      res.status(500).json({
+        success: false,
+        message: 'An error occurred while uploading cover image.',
+      });
+    }
+  }
+
+  /**
+   * DELETE /api/v1/posts/:id/cover
+   * Protected: Removes the cover image from an article. Owner only.
+   */
+  static async deleteCover(req: Request, res: Response): Promise<void> {
+    try {
+      const authorId = req.auth?.userId;
+      if (!authorId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required.',
+        });
+        return;
+      }
+
+      const paramResult = postIdParamSchema.safeParse(req.params);
+      if (!paramResult.success) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid post ID format. Expected a valid UUID.',
+          errors: formatZodErrors(paramResult.error),
+        });
+        return;
+      }
+
+      const post = await PostsService.deletePostCover(paramResult.data.id, authorId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Cover image removed successfully',
+        data: {
+          post,
+        },
+      });
+    } catch (error: any) {
+      if (error instanceof PostNotFoundError) {
+        res.status(404).json({
+          success: false,
+          message: 'Post not found.',
+        });
+        return;
+      }
+
+      if (error instanceof ForbiddenPostActionError) {
+        res.status(403).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      console.error('Error deleting post cover:', error instanceof Error ? error.message : error);
+      res.status(500).json({
+        success: false,
+        message: 'An error occurred while deleting cover image.',
+      });
+    }
+  }
 }
+

@@ -10,13 +10,14 @@ Talent Growth Blog Platform is a web publication and blogging platform enabling 
 
 | Layer       | Technology                                                  | Status                       |
 | ----------- | ----------------------------------------------------------- | ---------------------------- |
-| Frontend    | React 19, TypeScript, Vite, React Router v7                 | ✅ Integrated (Phase 4, 5, 6)|
+| Frontend    | React 19, TypeScript, Vite, React Router v7                 | ✅ Integrated (Phase 4, 5, 6, 7, 8, 9)|
 | Design System| **Aurora** (Warm Porcelain, Instrument Serif, Minimalist)   | ✅ Permanent Standard        |
 | Backend     | Node.js, Express.js, TypeScript                             | ✅ Production-ready          |
 | Database    | PostgreSQL (Local `talent_growth_dev` / Supabase)            | ✅ Relational Schema         |
 | ORM         | Prisma ORM (v7.10.0 + `@prisma/adapter-pg` driver)          | ✅ Configured & Migrated     |
 | Auth        | JWT (HS256) + bcrypt (12 rounds) + Zod + In-Memory RAM Store | ✅ Tested & Verified         |
-| Testing     | Vitest, Supertest                                           | ✅ **116/116 Tests Passing** (106 backend + 10 frontend) |
+| Storage     | Supabase Storage (`avatars`, `post-covers`) + sharp WebP     | ✅ Media Processing Pipeline |
+| Testing     | Vitest, Supertest                                           | ✅ **142/142 Tests Passing** (129 backend + 13 frontend) |
 | Linter      | Oxlint (Fast Rust-based linting, 0 warnings, 0 errors)       | ✅ Enforced                  |
 | Markdown    | react-markdown v10, remark-gfm v4, rehype-sanitize v6        | ✅ Safe Rendering & Sanitization |
 | HTTP Client | Axios (Centralized instance with Bearer interceptor)        | ✅ Implemented               |
@@ -107,35 +108,41 @@ talent-growth/
 │   │   │   │   └── migration.sql # Initial schema (User, Post, Comment, AuthSession)
 │   │   │   ├── 20261014232133_add_nested_comments_and_soft_delete/
 │   │   │   │   └── migration.sql # Self-referencing parent_id & deleted_at fields
-│   │   │   └── 20261015011234_add_user_bio/
-│   │   │       └── migration.sql # Safe optional bio column on User model
-│   │   └── schema.prisma      # Prisma schema definition with bio field
+│   │   │   ├── 20261015011234_add_user_bio/
+│   │   │   │   └── migration.sql # Safe optional bio column on User model
+│   │   │   └── 20261015034626_add_post_cover_image/
+│   │   │       └── migration.sql # Add cover_image_url and cover_image_alt to Post
+│   │   └── schema.prisma      # Prisma schema definition with cover fields
 │   ├── src/
 │   │   ├── config/            # Server & database configurations
 │   │   │   ├── auth.ts        # Centralized JWT config
-│   │   │   └── prisma.ts      # Singleton Prisma Client instance
+│   │   │   ├── prisma.ts      # Singleton Prisma Client instance
+│   │   │   └── storage.config.ts # Supabase Storage URL, keys & buckets loader
 │   │   ├── controllers/       # HTTP controllers
-│   │   │   ├── auth.controller.ts     # Register, login, logout, getMe, updateMe
-│   │   │   ├── posts.controller.ts    # Blog post CRUD controllers
+│   │   │   ├── auth.controller.ts     # Register, login, logout, getMe, updateMe, avatar upload/delete
+│   │   │   ├── posts.controller.ts    # Blog post CRUD & cover upload/delete controllers
 │   │   │   ├── comments.controller.ts # Nested comments & mutation controllers
 │   │   │   └── authors.controller.ts  # Author directory & public profile controllers
 │   │   ├── generated/         # Generated Prisma Client
 │   │   ├── middleware/        # Express middleware
-│   │   │   └── requireAuth.ts # Bearer token & active database session verification
+│   │   │   ├── requireAuth.ts # Bearer token & active database session verification
+│   │   │   └── upload.middleware.ts # Multer memory storage (5MB avatar, 8MB cover limits)
 │   │   ├── routes/            # Route declarations
-│   │   │   ├── auth.routes.ts     # /api/v1/auth routes (including PATCH /me)
-│   │   │   ├── posts.routes.ts    # /api/v1/posts routes
+│   │   │   ├── auth.routes.ts     # /api/v1/auth routes (including avatar upload/delete)
+│   │   │   ├── posts.routes.ts    # /api/v1/posts routes (including cover upload/delete)
 │   │   │   ├── comments.routes.ts # /api/v1/posts/:id/comments & /comments/:id
 │   │   │   ├── authors.routes.ts  # /api/v1/authors routes
 │   │   │   └── health.routes.ts   # Health & diagnostic checks
 │   │   ├── services/          # Business logic layer
-│   │   │   ├── auth.service.ts     # Password hashing, JWT sessions, profile updates
-│   │   │   ├── posts.service.ts    # Post queries, safe author selects, ownership enforcement
+│   │   │   ├── auth.service.ts     # Password hashing, JWT sessions, profile & avatar lifecycle
+│   │   │   ├── posts.service.ts    # Post queries, ownership enforcement, cover lifecycle & cleanup
 │   │   │   ├── comments.service.ts # Tree builder, parent validation, soft-delete policy
-│   │   │   └── authors.service.ts  # Published author aggregation, public profile projection
+│   │   │   ├── authors.service.ts  # Published author aggregation, public profile projection
+│   │   │   ├── image-processor.service.ts # Sharp decoding, orientation, WebP conversion & bomb protection
+│   │   │   └── media-storage.service.ts   # Supabase Storage client, path extraction, mock injection
 │   │   ├── validators/        # Zod request validators
 │   │   │   ├── auth.validators.ts     # Input validation & normalization
-│   │   │   ├── posts.validators.ts    # UUID, title, content, category validation
+│   │   │   ├── posts.validators.ts    # UUID, title, content, category, cover altText validation
 │   │   │   ├── comments.validators.ts # UUID, content (1-5000), parentId validation
 │   │   │   └── profile.validators.ts  # Author UUID and profile update (name, bio) validation
 │   │   ├── __tests__/         # Automated test suites
@@ -143,7 +150,9 @@ talent-growth/
 │   │   │   ├── auth.api.test.ts        # 16 integration tests
 │   │   │   ├── posts.api.test.ts       # 17 CRUD integration tests
 │   │   │   ├── comments.api.test.ts    # 22 threaded comments integration tests
-│   │   │   └── authors.api.test.ts     # 22 author directory & profile integration tests
+│   │   │   ├── authors.api.test.ts     # 22 author directory & profile integration tests
+│   │   │   ├── search.pagination.test.ts # 19 search & pagination tests
+│   │   │   └── media.storage.test.ts   # 23 media processing, upload & storage tests
 │   │   ├── app.ts             # Express application & route registration
 │   │   └── server.ts          # Server entry point
 │   ├── package.json           # Backend dependencies & scripts
@@ -205,15 +214,17 @@ talent-growth/
 
 ---
 
-### 2. Profile Management Endpoints (`/api/v1/auth`)
+### 2. Profile & Avatar Management Endpoints (`/api/v1/auth`)
 
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/auth/me` | **Protected** | Retrieves current authenticated user profile including `bio`. |
-| `PATCH` | `/api/v1/auth/me` | **Protected** | Updates current authenticated user's `name` and/or `bio`. Disallowed fields are rejected. |
-| `POST` | `/api/v1/auth/register` | Public | Registers new author with bcrypt (12 rounds) and creates active database session. |
-| `POST` | `/api/v1/auth/login` | Public | Verifies credentials and issues JWT token with database session tracking. |
-| `POST` | `/api/v1/auth/logout` | **Protected** | Instantly revokes session in PostgreSQL (`revokedAt = NOW()`). |
+| Method | Endpoint | Access | Content-Type | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/auth/me` | **Protected** | `application/json` | Retrieves current authenticated user profile including `bio` and `avatarUrl`. |
+| `PATCH` | `/api/v1/auth/me` | **Protected** | `application/json` | Updates current authenticated user's `name` and/or `bio`. Disallowed fields are rejected. |
+| `POST` | `/api/v1/auth/me/avatar` | **Protected** | `multipart/form-data` | Uploads author avatar image (`avatar` field, max 5MB, JPEG/PNG/WebP). Re-encodes to 512x512 WebP, updates `User.avatarUrl`, and cleans up old object. |
+| `DELETE` | `/api/v1/auth/me/avatar` | **Protected** | None | Deletes author avatar from Supabase Storage and sets `avatarUrl: null`, safely returning to monogram fallback. |
+| `POST` | `/api/v1/auth/register` | Public | `application/json` | Registers new author with bcrypt (12 rounds) and creates active database session. |
+| `POST` | `/api/v1/auth/login` | Public | `application/json` | Verifies credentials and issues JWT token with database session tracking. |
+| `POST` | `/api/v1/auth/logout` | **Protected** | None | Instantly revokes session in PostgreSQL (`revokedAt = NOW()`). |
 
 #### Profile Update Validation Rules (Zod):
 - Identity strictly derived from JWT token context (`req.auth.userId`). No user ID is accepted in URL or request body.
@@ -224,15 +235,17 @@ talent-growth/
 
 ---
 
-### 3. Blog Post CRUD, Search & Pagination Endpoints (`/api/v1/posts`)
+### 3. Blog Post CRUD, Search, Pagination & Cover Endpoints (`/api/v1/posts`)
 
-| Method | Endpoint | Access | Query Parameters | Description |
+| Method | Endpoint | Access | Query / Form Parameters | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/posts` | **Public** | `q`, `category`, `page` (default 1), `limit` (default 9, max 50) | Retrieves paginated posts sorted newest first (`createdAt: 'desc', id: 'desc'`) with safe author info. Supports full-text title and content search combined with category filter. |
-| `GET` | `/api/v1/posts/:id` | **Public** | None | Retrieves full post details by UUID. Returns 404 if not found, 400 if invalid UUID. |
-| `POST` | `/api/v1/posts` | **Protected** | None | Creates new post. `authorId` is strictly assigned from verified JWT token context. Content supports Markdown. |
-| `PUT` | `/api/v1/posts/:id` | **Protected** | None | Updates post. Enforces ownership: returns 403 Forbidden if current user is not author. |
-| `DELETE` | `/api/v1/posts/:id` | **Protected** | None | Deletes post. Enforces ownership: returns 403 Forbidden if current user is not author. |
+| `GET` | `/api/v1/posts` | **Public** | `q`, `category`, `page` (default 1), `limit` (default 9, max 50) | Retrieves paginated posts sorted newest first (`createdAt: 'desc', id: 'desc'`) with safe author info and cover image metadata. |
+| `GET` | `/api/v1/posts/:id` | **Public** | None | Retrieves full post details by UUID including `coverImageUrl` and `coverImageAlt`. Returns 404 if not found, 400 if invalid UUID. |
+| `POST` | `/api/v1/posts` | **Protected** | JSON body | Creates new post. `authorId` is strictly assigned from verified JWT token context. Content supports Markdown. |
+| `PUT` | `/api/v1/posts/:id` | **Protected** | JSON body | Updates post. Enforces ownership: returns 403 Forbidden if current user is not author. |
+| `DELETE` | `/api/v1/posts/:id` | **Protected** | None | Deletes post and best-effort cleans up associated cover image from storage. Enforces ownership (403). |
+| `POST` | `/api/v1/posts/:id/cover` | **Protected** | `cover` (file, max 8MB), `altText` (max 160 chars) | Uploads editorial article cover image. Enforces post ownership (403). Re-encodes to max 2400x1600 WebP, updates `coverImageUrl` and `coverImageAlt`, and cleans up previous cover object. |
+| `DELETE` | `/api/v1/posts/:id/cover` | **Protected** | None | Deletes article cover from storage and sets `coverImageUrl: null`, `coverImageAlt: null`. Enforces post ownership (403). |
 
 #### Search & Pagination Architecture:
 - **Search Parameter (`q`)**: Case-insensitive substring search matching both `title` and `content` columns. Whitespace is automatically trimmed. Max length: 100 characters (exceeding length returns HTTP 400).
@@ -308,7 +321,61 @@ Talent Growth Phase 8 introduces native Markdown authoring with real-time previe
 
 ---
 
-### 5. Diagnostic Endpoints (`/api/v1/health`)
+### 6. Media Upload, Image Processing & Supabase Storage Integration (Phase 9)
+
+Talent Growth Phase 9 implements full-stack media management for author profile avatars and editorial article cover images, backed by **Supabase Storage** and high-performance server-side image processing with `sharp`.
+
+#### Architecture Overview:
+- **Backend as Secure Media Broker**: Files are uploaded through Express backend middleware (`multer` with memory storage). The client never communicates directly with storage credentials.
+- **Image Processing Pipeline (`sharp`)**:
+  - Validates buffer decoding and format against raster types (`image/jpeg`, `image/png`, `image/webp`). Non-raster files (SVG, HTML, PDF, executables, animated GIFs) are strictly rejected with HTTP 400.
+  - Decompression bomb guard: Files with dimensions exceeding 40 Megapixels (`width * height > 40,000,000`) are rejected immediately.
+  - Auto-rotates orientation according to EXIF tags.
+  - Strips all sensitive metadata (GPS, EXIF, camera serials).
+  - Normalizes and re-encodes to high-quality **WebP** (`image/webp`).
+  - **Avatars**: Cropped to square and scaled to a maximum of 512 × 512 pixels.
+  - **Covers**: Scaled proportionally with aspect ratio preserved to a maximum of 2400 × 1600 pixels.
+- **Supabase Storage Buckets**:
+  - `avatars`: Public read model for user profile avatars. Organized as `${userId}/${uuid}.webp`.
+  - `post-covers`: Public read model for editorial essay covers. Organized as `${userId}/${postId}/${uuid}.webp`.
+  - Public Read Rationale: Avatars and article covers are displayed on public pages (Home, Essays, Post Detail, Writers). Upload and deletion operations remain strictly authenticated and authorized on the backend.
+- **Security & Data Safety**:
+  - Object paths are strictly server-generated using UUIDs to prevent user filename manipulation or path traversal attacks.
+  - Ownership authorization: Only the post's authenticated author can upload or delete its cover (returns 403 Forbidden otherwise). Avatar uploads strictly bind to `req.auth.userId`.
+  - Storage abstraction (`media-storage.service.ts`): Allows dependency injection and deterministic in-memory mock testing without calling remote cloud storage or requiring live credentials.
+  - Partial failure handling & Compensating Cleanup: If the PostgreSQL update fails after an object is uploaded, the newly uploaded storage object is automatically deleted to prevent orphan files. When an image is replaced or deleted, the previous storage object is cleaned up asynchronously.
+  - Database schema integrity: Images are never stored as Base64 strings or binary BLOBS in PostgreSQL. Only clean, validated public URLs are stored in `User.avatarUrl`, `Post.coverImageUrl`, and `Post.coverImageAlt`.
+  - Legacy Compatibility: Articles and authors without images render Aurora editorial monogram fallbacks seamlessly without layout shift or broken image placeholders.
+
+#### Supabase Storage Manual Setup Guide:
+To configure Supabase Storage for remote production or local cloud testing:
+1. Log in to the [Supabase Dashboard](https://supabase.com/dashboard) and select or create your project.
+2. Navigate to **Storage** from the left navigation menu.
+3. Click **New Bucket** and create the avatars bucket:
+   - Name: `avatars`
+   - Public Bucket: **Enabled (Checked)** (allows public URL reads for avatars)
+   - Max file size limit: `5MB`
+   - Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`
+4. Click **New Bucket** and create the post covers bucket:
+   - Name: `post-covers`
+   - Public Bucket: **Enabled (Checked)** (allows public URL reads for editorial covers)
+   - Max file size limit: `8MB`
+   - Allowed MIME types: `image/jpeg`, `image/png`, `image/webp`
+5. Retrieve your project credentials from **Project Settings** > **API**:
+   - **Project URL**: Found under Configuration.
+   - **Service Role Secret Key**: Found under Project API Keys (must be kept secret on the server; never expose with `VITE_` or frontend bundles).
+6. Populate `backend/.env`:
+   ```env
+   SUPABASE_URL="https://your-project.supabase.co"
+   SUPABASE_SECRET_KEY="your-supabase-secret-key"
+   SUPABASE_AVATARS_BUCKET="avatars"
+   SUPABASE_COVERS_BUCKET="post-covers"
+   ```
+7. If storage credentials are not provided or configured, the backend continues to operate all core services (auth, articles, comments, authors) and returns a clean, safe HTTP 503 response on upload endpoints without application crashing.
+
+---
+
+### 7. Diagnostic Endpoints (`/api/v1/health`)
 - `GET /api/v1/health` — Basic API health check
 - `GET /api/v1/health/db` — PostgreSQL connection and latency check
 
@@ -334,27 +401,28 @@ Talent Growth Phase 8 introduces native Markdown authoring with real-time previe
 
 ## 🧪 Testing & Verification
 
-### Full Automated Test Suite (116 Passing Tests)
-Run all unit, integration, and security tests across backend (106 tests) and frontend (10 tests):
+### Full Automated Test Suite (142 Passing Tests)
+Run all unit, integration, storage, and security tests across backend (129 tests) and frontend (13 tests):
 
 ```bash
-# Backend test suite (106 passing tests across 6 suites)
+# Backend test suite (129 passing tests across 7 suites)
 cd backend
 npm test
 
-# Frontend test suite (10 passing tests via Vitest & jsdom)
+# Frontend test suite (13 passing tests via Vitest & jsdom)
 cd frontend
 npm test
 ```
 
 Test coverage includes:
+- `media.storage.test.ts` (23 tests): JPEG, PNG, and WebP valid buffer processing; rejection of fake MIME extensions (text disguised as jpg), SVG, animated GIF, and corrupted image buffers; rejection of images exceeding 40 Megapixels decompression bomb limit; avatar upload authentication requirement, user profile avatar URL update, avatar replacement with previous object cleanup, avatar removal reverting `avatarUrl` to null for monogram fallback, prevention of target user manipulation from request body; post cover upload authentication & ownership checks (403 for unauthorized users, 404 for missing post), alt text length validation (max 160 characters), cover update & previous object cleanup, cover removal setting fields to null, post deletion cover object cleanup, compensating cleanup when database updates fail, and safe error handling without secret leakage.
 - `search.pagination.test.ts` (19 tests): Article search by title, article search by content, case-insensitive normalization, whitespace trimming, combined search and category filtering, deterministic sorting (`createdAt DESC, id DESC`), pagination defaults (`page=1, limit=9`), pagination boundaries and rejection of invalid/negative/decimal/exceeding limits, empty state pagination consistency, author directory search by name/bio with email isolation, author directory pagination, and public author profile essay pagination (`postsPage`, `postsLimit`) with total `postCount` preservation.
 - `authors.api.test.ts` (22 tests): Public directory access, contributor postCount filtering, name sorting, bio display, email/passwordHash privacy protection, public profile by ID, newest-first essay ordering, 0-post user empty state, invalid UUID (400), user not found (404), profile update (`PATCH /api/v1/auth/me`), name validation (1-80 chars), bio length (500 chars), whitespace normalization to `null`, rejection of empty update body, forbidden field protection (`email`, `id`, `avatarUrl`), 401 unauthenticated check, revoked session rejection, database persistence, and isolated test cleanup.
 - `comments.api.test.ts` (22 tests): Threaded comments tree, parentId validation, cross-post rejection, leaf hard-delete, parent soft-delete.
 - `posts.api.test.ts` (17 tests): Public reads, safe author filtering, creation with token identity, ownership enforcement for edit/delete, 403 for unauthorized users, 404 for missing records.
 - `auth.api.test.ts` (16 tests): Registration, login, duplicate email rejection, session revocation, live db check.
 - `auth.validators.test.ts` (10 tests): UTF-8 72-byte passwords, email normalization, required fields.
-- `markdown.security.test.tsx` (10 frontend tests): Sanitization of `<script>` tags, stripping of dangerous inline event handlers (`onload`, `onerror`), disarming malicious URL schemes (`javascript:`), secure external link handling (`target="_blank"` with `rel="noopener noreferrer"`), remote image neutralization with pill badge indicator, rendering standard Markdown (headings, bold, italic, blockquote, lists, inline code, code blocks, and GFM tables), and safe plain-text backward compatibility.
+- `markdown.security.test.tsx` (13 frontend tests): Sanitization of `<script>` tags, stripping of dangerous inline event handlers (`onload`, `onerror`), disarming malicious URL schemes (`javascript:`), secure external link handling (`target="_blank"` with `rel="noopener noreferrer"`), remote image neutralization with pill badge indicator, rendering standard Markdown (headings, bold, italic, blockquote, lists, inline code, code blocks, and GFM tables), and safe plain-text backward compatibility.
 
 ### Frontend Quality & Typecheck
 Verify strict TypeScript compilation and linting:
@@ -386,6 +454,12 @@ NODE_ENV=development
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/talent_growth_dev"
 JWT_SECRET="your-secure-jwt-secret-here"
 FRONTEND_URL="http://localhost:5173"
+
+# Supabase Storage Configuration (Phase 9)
+SUPABASE_URL="https://your-project.supabase.co"
+SUPABASE_SECRET_KEY="your-supabase-secret-key"
+SUPABASE_AVATARS_BUCKET="avatars"
+SUPABASE_COVERS_BUCKET="post-covers"
 ```
 
 **Frontend (`frontend/.env`):**
@@ -413,7 +487,7 @@ npm run dev
 
 ---
 
-## ✅ Current Status (Phase 8 Completed)
+## ✅ Current Status (Phase 9 Completed)
 
 - [x] **Phase 1**: Full-stack scaffolding (React 19 + Express + TypeScript)
 - [x] **Phase 2**: PostgreSQL schema, Prisma ORM v7, database health checks
@@ -422,16 +496,18 @@ npm run dev
 - [x] **Phase 5**: Full-Stack Blog Post CRUD & Aurora Editorial Experience (17 tests)
 - [x] **Phase 6**: Nested Comments System, Replies, Ownership Authorization & Aurora UI (22 tests)
 - [x] **Phase 7**: Author Directory, Public Author Profiles & Profile Management (22 tests)
-- [x] **Phase 8**: Search, Pagination, Markdown Editor & Safe Content Rendering:
-  - [x] Full-stack article search by title & content (case-insensitive, trimmed, combining with category filter, deterministic `createdAt DESC, id DESC`).
-  - [x] Article pagination on `/essays` with Aurora pagination controls, metadata counters, and out-of-range empty states.
-  - [x] Author directory search (`q` matching name/bio, excluding email) and pagination on `/writers`.
-  - [x] Public author profile article pagination (`postsPage`, `postsLimit`) on `/writers/:id` while preserving total `postCount`.
-  - [x] Markdown editor with Write and Preview modes, character counter, and cursor-aware formatting toolbar on New Post (`/essays/new`) and Edit Post (`/essays/:id/edit`).
-  - [x] Safe Markdown rendering on Post Detail (`/essays/:id`) and editor preview via `react-markdown`, `remark-gfm`, and `rehype-sanitize`.
-  - [x] Strict XSS mitigation (no raw HTML, neutralization of `<script>` / event handlers, disarming of `javascript:` URLs, safe external links, and remote image badges).
-  - [x] Bidirectional URL query synchronization (`/essays?q=...&category=...&page=...`, `/writers?q=...&page=...`, `/writers/:id?postsPage=...`).
-  - [x] 19 new backend integration tests + 10 frontend security/rendering tests (**116/116 total passing automated tests**).
+- [x] **Phase 8**: Search, Pagination, Markdown Editor & Safe Content Rendering (29 tests)
+- [x] **Phase 9**: Avatar Upload, Article Cover Images & Supabase Storage Integration:
+  - [x] Authenticated avatar upload (`POST /api/v1/auth/me/avatar`) and deletion (`DELETE /api/v1/auth/me/avatar`) with monogram fallback.
+  - [x] Authenticated article cover upload (`POST /api/v1/posts/:id/cover`) and deletion (`DELETE /api/v1/posts/:id/cover`) with strict author ownership enforcement.
+  - [x] High-performance image processing pipeline with `sharp`: decoding verification, format restriction (JPEG/PNG/WebP), EXIF stripping, auto-orientation, decompression bomb protection (>40MP), 512x512 avatar square crop, and 2400x1600 cover scaling.
+  - [x] Multer memory storage middleware with 5MB avatar and 8MB cover input limits.
+  - [x] Supabase Storage integration with public read model for `avatars` and `post-covers` buckets.
+  - [x] Storage service abstraction (`media-storage.service.ts`) with test provider injection for deterministic tests without live cloud credentials.
+  - [x] Database migration adding nullable `cover_image_url` and `cover_image_alt` columns to `Post` with backward compatibility for legacy articles.
+  - [x] Partial failure resilience and compensating cleanup when database updates fail after media upload.
+  - [x] Full Aurora frontend integration on ProfilePage, NewPostPage, EditPostPage, PostDetailPage, PostCard (HomePage, EssaysPage, ProfilePage), and PublicAuthorPage.
+  - [x] 23 new media storage and processing automated tests (**142/142 total passing automated tests**).
   - [x] Aurora design system visual continuity with 0 browser inspection rules respected.
 
 ---
@@ -448,7 +524,7 @@ npm run dev
 | 6     | Nested Comments System & Threaded Conversation  | ✅ Done     |
 | 7     | Author Directory, Public Profiles & Profile Mgmt| ✅ Done     |
 | 8     | Search, pagination, markdown & safe rendering   | ✅ Done     |
-| 9     | Photo upload & media management                 | ⏳ Upcoming |
+| 9     | Photo upload & media management                 | ✅ Done     |
 | 10    | Testing & Polish                                | ⏳ Upcoming |
 | 11    | Deployment (Vercel, Railway, Supabase)          | ⏳ Upcoming |
 

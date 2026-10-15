@@ -9,6 +9,8 @@ export interface Post {
   title: string;
   content: string;
   category?: string | null;
+  coverImageUrl?: string | null;
+  coverImageAlt?: string | null;
   authorId: string;
   createdAt: string;
   updatedAt: string;

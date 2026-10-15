@@ -1,4 +1,8 @@
+import { randomUUID } from 'crypto';
 import { prisma } from '../config/prisma';
+import { getStorageConfig } from '../config/storage.config';
+import { mediaStorageService } from './media-storage.service';
+import { ImageProcessorService } from './image-processor.service';
 import type {
   CreatePostInput,
   UpdatePostInput,
@@ -31,6 +35,8 @@ export const safePostSelect = {
   title: true,
   content: true,
   category: true,
+  coverImageUrl: true,
+  coverImageAlt: true,
   authorId: true,
   createdAt: true,
   updatedAt: true,
@@ -169,6 +175,7 @@ export class PostsService {
   /**
    * Deletes an existing post after verifying ownership.
    * Throws PostNotFoundError if not found, or ForbiddenPostActionError if not owner.
+   * Best-effort cleanup of associated cover image from storage.
    */
   static async deletePost(id: string, currentUserId: string) {
     const existing = await prisma.post.findUnique({
@@ -176,6 +183,7 @@ export class PostsService {
       select: {
         id: true,
         authorId: true,
+        coverImageUrl: true,
       },
     });
 
@@ -191,6 +199,140 @@ export class PostsService {
       where: { id },
     });
 
+    // Best-effort cleanup of cover from storage after DB deletion
+    if (existing.coverImageUrl) {
+      const config = getStorageConfig();
+      const oldPath = mediaStorageService.extractPathFromUrl(
+        existing.coverImageUrl,
+        config.coversBucket
+      );
+      if (oldPath) {
+        mediaStorageService.delete(config.coversBucket, oldPath).catch(() => {});
+      }
+    }
+
     return { id };
+  }
+
+  /**
+   * Uploads and updates an article's cover image.
+   * Verifies ownership: 404 if not found, 403 if not owner.
+   * Generates server-side random path: userId/postId/uuid.webp
+   * Uploads to SUPABASE_COVERS_BUCKET.
+   * Cleans up previous cover if it was an application-managed object.
+   */
+  static async uploadPostCover(
+    postId: string,
+    currentUserId: string,
+    fileBuffer: Buffer,
+    altText?: string | null
+  ) {
+    const existing = await prisma.post.findUnique({
+      where: { id: postId },
+      select: {
+        id: true,
+        authorId: true,
+        coverImageUrl: true,
+      },
+    });
+
+    if (!existing) {
+      throw new PostNotFoundError();
+    }
+
+    if (existing.authorId !== currentUserId) {
+      throw new ForbiddenPostActionError('You do not have permission to upload a cover for this post.');
+    }
+
+    // 1. Process image with sharp (WebP, max 2400x1600, stripped EXIF)
+    const processed = await ImageProcessorService.processCover(fileBuffer);
+
+    // 2. Build server-side secure path
+    const config = getStorageConfig();
+    const objectPath = `${currentUserId}/${postId}/${randomUUID()}.webp`;
+
+    // 3. Upload to storage
+    const newCoverUrl = await mediaStorageService.upload(
+      config.coversBucket,
+      objectPath,
+      processed.buffer,
+      processed.contentType
+    );
+
+    // 4. Update database
+    let updatedPost;
+    try {
+      updatedPost = await prisma.post.update({
+        where: { id: postId },
+        data: {
+          coverImageUrl: newCoverUrl,
+          coverImageAlt: altText ?? null,
+        },
+        select: safePostSelect,
+      });
+    } catch (dbErr) {
+      // Compensating cleanup of the newly uploaded object if DB update fails
+      await mediaStorageService.delete(config.coversBucket, objectPath).catch(() => {});
+      throw dbErr;
+    }
+
+    // 5. Best-effort cleanup of previous cover if present
+    if (existing.coverImageUrl) {
+      const oldPath = mediaStorageService.extractPathFromUrl(
+        existing.coverImageUrl,
+        config.coversBucket
+      );
+      if (oldPath && oldPath !== objectPath) {
+        mediaStorageService.delete(config.coversBucket, oldPath).catch(() => {});
+      }
+    }
+
+    return updatedPost;
+  }
+
+  /**
+   * Removes an article's cover image and resets to editorial text fallback.
+   * Verifies ownership: 404 if not found, 403 if not owner.
+   */
+  static async deletePostCover(postId: string, currentUserId: string) {
+    const existing = await prisma.post.findUnique({
+      where: { id: postId },
+      select: {
+        id: true,
+        authorId: true,
+        coverImageUrl: true,
+      },
+    });
+
+    if (!existing) {
+      throw new PostNotFoundError();
+    }
+
+    if (existing.authorId !== currentUserId) {
+      throw new ForbiddenPostActionError('You do not have permission to delete the cover for this post.');
+    }
+
+    const updatedPost = await prisma.post.update({
+      where: { id: postId },
+      data: {
+        coverImageUrl: null,
+        coverImageAlt: null,
+      },
+      select: safePostSelect,
+    });
+
+    // Best-effort cleanup in storage
+    if (existing.coverImageUrl) {
+      const config = getStorageConfig();
+      const oldPath = mediaStorageService.extractPathFromUrl(
+        existing.coverImageUrl,
+        config.coversBucket
+      );
+      if (oldPath) {
+        mediaStorageService.delete(config.coversBucket, oldPath).catch(() => {});
+      }
+    }
+
+    return updatedPost;
   }
 }

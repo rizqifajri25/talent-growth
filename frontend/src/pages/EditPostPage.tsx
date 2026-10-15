@@ -16,12 +16,28 @@ export const EditPostPage: React.FC = () => {
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('');
 
+  // Cover image state (Phase 9)
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null);
+  const [coverAltText, setCoverAltText] = useState('');
+  const [isCoverMarkedForDeletion, setIsCoverMarkedForDeletion] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
+
   const [isLoading, setIsLoading] = useState(Boolean(id));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isNotFound, setIsNotFound] = useState(!id);
   const [isForbidden, setIsForbidden] = useState(false);
+
+  // Revoke object URL on cleanup
+  useEffect(() => {
+    return () => {
+      if (coverPreviewUrl && coverPreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(coverPreviewUrl);
+      }
+    };
+  }, [coverPreviewUrl]);
 
   useEffect(() => {
     if (!id) return;
@@ -35,6 +51,13 @@ export const EditPostPage: React.FC = () => {
         setTitle(data.title);
         setContent(data.content);
         setCategory(data.category || '');
+
+        if (data.coverImageUrl) {
+          setCoverPreviewUrl(data.coverImageUrl);
+        }
+        if (data.coverImageAlt) {
+          setCoverAltText(data.coverImageAlt);
+        }
 
         if (user && data.authorId !== user.id) {
           setIsForbidden(true);
@@ -59,6 +82,50 @@ export const EditPostPage: React.FC = () => {
       isMounted = false;
     };
   }, [id, user]);
+
+  const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setCoverError(null);
+
+    // Max 8MB
+    if (file.size > 8 * 1024 * 1024) {
+      setCoverError('Cover image file size exceeds the 8MB limit.');
+      e.target.value = '';
+      return;
+    }
+
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowed.includes(file.type)) {
+      setCoverError('Only JPEG, PNG, and WebP images are allowed.');
+      e.target.value = '';
+      return;
+    }
+
+    if (coverPreviewUrl && coverPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(coverPreviewUrl);
+    }
+
+    const preview = URL.createObjectURL(file);
+    setCoverFile(file);
+    setCoverPreviewUrl(preview);
+    setIsCoverMarkedForDeletion(false);
+    e.target.value = '';
+  };
+
+  const handleRemoveCover = () => {
+    if (coverPreviewUrl && coverPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(coverPreviewUrl);
+    }
+    setCoverFile(null);
+    setCoverPreviewUrl(null);
+    setCoverAltText('');
+    setCoverError(null);
+    if (post?.coverImageUrl) {
+      setIsCoverMarkedForDeletion(true);
+    }
+  };
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {};
@@ -99,6 +166,21 @@ export const EditPostPage: React.FC = () => {
         content: content.trim(),
         category: category.trim() || null,
       });
+
+      // Handle Cover Changes (Phase 9)
+      if (coverFile) {
+        try {
+          await postsApi.uploadCover(id, coverFile, coverAltText);
+        } catch (coverErr) {
+          console.warn('Cover upload failed after post update:', coverErr);
+        }
+      } else if (isCoverMarkedForDeletion) {
+        try {
+          await postsApi.deleteCover(id);
+        } catch (deleteErr) {
+          console.warn('Cover deletion failed after post update:', deleteErr);
+        }
+      }
 
       // Redirect to the updated post detail page
       navigate(`/essays/${updatedPost.id}`);
@@ -251,6 +333,88 @@ export const EditPostPage: React.FC = () => {
               <span id="category-error" className="field-error-message" role="alert">
                 {fieldErrors.category}
               </span>
+            )}
+          </div>
+
+          {/* Cover Image Section (Phase 9) */}
+          <div className="cover-upload-section">
+            <div className="cover-upload-header">
+              <span className="cover-upload-title">Article Cover Image</span>
+              <span className="optional-tag">(Optional)</span>
+            </div>
+            <p className="cover-upload-hint">
+              Upload or update the editorial cover image (JPEG, PNG, WebP · Max 8MB). Recommended aspect ratio 16:9.
+            </p>
+
+            {coverError && (
+              <div className="alert-banner alert-error" style={{ marginBottom: '1rem', padding: '0.65rem 1rem' }} role="alert">
+                <span>{coverError}</span>
+              </div>
+            )}
+
+            {coverPreviewUrl ? (
+              <div>
+                <div className="cover-preview-card">
+                  <img src={coverPreviewUrl} alt={coverAltText || 'Cover preview'} />
+                  <div className="cover-preview-overlay">
+                    <button
+                      type="button"
+                      className="btn-cover-remove"
+                      onClick={handleRemoveCover}
+                      disabled={isSubmitting}
+                    >
+                      Remove Cover
+                    </button>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <label htmlFor="cover-edit-upload-input" className="btn-outline-pill" style={{ cursor: 'pointer', fontSize: '0.8rem', padding: '0.35rem 0.85rem' }}>
+                    Replace Image
+                  </label>
+                  <input
+                    id="cover-edit-upload-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    style={{ display: 'none' }}
+                    onChange={handleCoverFileChange}
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                <div className="cover-alt-input-group">
+                  <div className="form-label-row">
+                    <label htmlFor="cover-alt-text">Cover Alt Text (Accessibility)</label>
+                    <span className="char-count">{coverAltText.length}/160</span>
+                  </div>
+                  <input
+                    id="cover-alt-text"
+                    type="text"
+                    className="cover-alt-input"
+                    placeholder="Describe the cover image for readers with screen readers..."
+                    value={coverAltText}
+                    onChange={(e) => setCoverAltText(e.target.value.slice(0, 160))}
+                    maxLength={160}
+                    disabled={isSubmitting}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label htmlFor="cover-edit-upload-input" className="cover-dropzone-box" style={{ display: 'block' }}>
+                  <span className="cover-dropzone-icon" aria-hidden="true">🖼️</span>
+                  <div className="cover-dropzone-text">Click to choose article cover</div>
+                  <div className="cover-dropzone-sub">Supports JPEG, PNG, or WebP up to 8MB</div>
+                </label>
+                <input
+                  id="cover-edit-upload-input"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  style={{ display: 'none' }}
+                  onChange={handleCoverFileChange}
+                  disabled={isSubmitting}
+                />
+              </div>
             )}
           </div>
 

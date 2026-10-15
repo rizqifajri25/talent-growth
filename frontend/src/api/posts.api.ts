@@ -69,4 +69,29 @@ export const postsApi = {
     const response = await apiClient.delete<DeletePostApiResponse>(`/posts/${id}`);
     return response.data.data;
   },
+
+  /**
+   * Uploads or replaces the cover image for an article. Only post owner is authorized.
+   * Protected endpoint.
+   */
+  async uploadCover(id: string, file: File, altText?: string): Promise<Post> {
+    const formData = new FormData();
+    formData.append('cover', file);
+    if (altText && altText.trim()) {
+      formData.append('altText', altText.trim());
+    }
+
+    const response = await apiClient.post<PostApiResponse>(`/posts/${id}/cover`, formData);
+    return response.data.data.post;
+  },
+
+  /**
+   * Removes the cover image for an article. Only post owner is authorized.
+   * Protected endpoint.
+   */
+  async deleteCover(id: string): Promise<Post> {
+    const response = await apiClient.delete<PostApiResponse>(`/posts/${id}/cover`);
+    return response.data.data.post;
+  },
 };
+

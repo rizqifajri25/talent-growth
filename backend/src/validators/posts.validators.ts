@@ -167,3 +167,20 @@ export function formatZodErrors(error: z.ZodError): ValidationErrorItem[] {
   }));
 }
 
+/**
+ * Schema for post cover upload metadata.
+ * - altText: optional, max 160 chars, trimmed, normalized to null if empty
+ */
+export const postCoverUploadSchema = z.object({
+  altText: z
+    .string()
+    .trim()
+    .max(160, 'Alt text must not exceed 160 characters')
+    .optional()
+    .nullable()
+    .transform((val) => (val && val.length > 0 ? val : null)),
+});
+
+export type PostCoverUploadInput = z.infer<typeof postCoverUploadSchema>;
+
+

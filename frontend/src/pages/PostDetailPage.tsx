@@ -230,6 +230,20 @@ export const PostDetailPage: React.FC = () => {
         </div>
       </header>
 
+      {/* Hero Cover Image (Phase 9) */}
+      {post.coverImageUrl && (
+        <div className="article-hero-cover-container">
+          <img
+            src={post.coverImageUrl}
+            alt={post.coverImageAlt || post.title}
+            className="article-hero-cover-img"
+          />
+          {post.coverImageAlt && (
+            <p className="article-hero-cover-caption">{post.coverImageAlt}</p>
+          )}
+        </div>
+      )}
+
       {/* Article Body - Rendered safely using Aurora MarkdownRenderer */}
       <div className="article-body">
         <MarkdownRenderer content={post.content} />

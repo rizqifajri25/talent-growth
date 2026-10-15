@@ -22,6 +22,19 @@ export const PostCard: React.FC<PostCardProps> = ({
 
   return (
     <article className="aurora-post-card">
+      {post.coverImageUrl && (
+        <div className="post-card-cover-wrapper">
+          <Link to={`/essays/${post.id}`} tabIndex={-1} aria-hidden="true">
+            <img
+              src={post.coverImageUrl}
+              alt={post.coverImageAlt || post.title}
+              className="post-card-cover-img"
+              loading="lazy"
+            />
+          </Link>
+        </div>
+      )}
+
       <div className="post-card-header">
         {post.category && (
           <span className="post-category-badge">{post.category}</span>

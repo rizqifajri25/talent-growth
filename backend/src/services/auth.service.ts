@@ -3,6 +3,9 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../config/prisma';
 import { authConfig } from '../config/auth';
+import { getStorageConfig } from '../config/storage.config';
+import { mediaStorageService } from './media-storage.service';
+import { ImageProcessorService } from './image-processor.service';
 import { RegisterInput, LoginInput } from '../validators/auth.validators';
 import { UpdateProfileInput } from '../validators/profile.validators';
 
@@ -316,5 +319,114 @@ export class AuthService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Uploads and updates avatar for the authenticated user.
+   * Generates server-side secure path: userId/uuid.webp
+   * Uploads to SUPABASE_AVATARS_BUCKET.
+   * Cleans up previous avatar if it was an application-managed object.
+   */
+  static async uploadAvatar(userId: string, fileBuffer: Buffer): Promise<SafeUser> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, avatarUrl: true },
+    });
+
+    if (!user) {
+      throw new UserNotFoundError();
+    }
+
+    // 1. Process image with sharp (WebP, max 512x512, stripped EXIF)
+    const processed = await ImageProcessorService.processAvatar(fileBuffer);
+
+    // 2. Build server-side secure path
+    const config = getStorageConfig();
+    const objectPath = `${userId}/${crypto.randomUUID()}.webp`;
+
+    // 3. Upload to storage
+    const newAvatarUrl = await mediaStorageService.upload(
+      config.avatarsBucket,
+      objectPath,
+      processed.buffer,
+      processed.contentType
+    );
+
+    // 4. Update database
+    let updatedUser: SafeUser;
+    try {
+      updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: { avatarUrl: newAvatarUrl },
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          bio: true,
+          avatarUrl: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+    } catch (dbErr) {
+      // Compensating cleanup of newly uploaded object if DB update fails
+      await mediaStorageService.delete(config.avatarsBucket, objectPath).catch(() => {});
+      throw dbErr;
+    }
+
+    // 5. Best-effort cleanup of old avatar if present
+    if (user.avatarUrl) {
+      const oldPath = mediaStorageService.extractPathFromUrl(
+        user.avatarUrl,
+        config.avatarsBucket
+      );
+      if (oldPath && oldPath !== objectPath) {
+        mediaStorageService.delete(config.avatarsBucket, oldPath).catch(() => {});
+      }
+    }
+
+    return updatedUser;
+  }
+
+  /**
+   * Removes avatar for authenticated user and resets to monogram fallback.
+   */
+  static async deleteAvatar(userId: string): Promise<SafeUser> {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, avatarUrl: true },
+    });
+
+    if (!user) {
+      throw new UserNotFoundError();
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: null },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        bio: true,
+        avatarUrl: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    // Best-effort cleanup in storage
+    if (user.avatarUrl) {
+      const config = getStorageConfig();
+      const oldPath = mediaStorageService.extractPathFromUrl(
+        user.avatarUrl,
+        config.avatarsBucket
+      );
+      if (oldPath) {
+        mediaStorageService.delete(config.avatarsBucket, oldPath).catch(() => {});
+      }
+    }
+
+    return updatedUser;
   }
 }

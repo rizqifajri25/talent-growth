@@ -11,6 +11,15 @@ import {
   InvalidCredentialsError,
   UserNotFoundError,
 } from '../services/auth.service';
+import {
+  InvalidImageError,
+  ImageTooLargeError,
+} from '../services/image-processor.service';
+import {
+  mediaStorageService,
+  StorageNotConfiguredError,
+  StorageOperationError,
+} from '../services/media-storage.service';
 
 /**
  * Controller for handling authentication HTTP requests.
@@ -217,4 +226,128 @@ export class AuthController {
       });
     }
   }
+
+  /**
+   * POST /api/v1/auth/me/avatar
+   * Protected: Uploads or replaces the authenticated user's avatar image.
+   */
+  static async uploadAvatar(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.auth?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+        });
+        return;
+      }
+
+      if (!req.file || !req.file.buffer) {
+        res.status(400).json({
+          success: false,
+          message: 'Avatar file is required.',
+          errors: [{ field: 'avatar', message: 'No file uploaded in the "avatar" field.' }],
+        });
+        return;
+      }
+
+      if (!mediaStorageService.isConfigured()) {
+        res.status(503).json({
+          success: false,
+          message: 'Media storage is not configured on this server.',
+        });
+        return;
+      }
+
+      const updatedUser = await AuthService.uploadAvatar(userId, req.file.buffer);
+
+      res.status(200).json({
+        success: true,
+        message: 'Avatar uploaded successfully',
+        data: {
+          user: updatedUser,
+        },
+      });
+    } catch (error: any) {
+      if (error instanceof UserNotFoundError) {
+        res.status(401).json({
+          success: false,
+          message: 'User account not found or has been deactivated.',
+        });
+        return;
+      }
+
+      if (error instanceof InvalidImageError || error instanceof ImageTooLargeError) {
+        res.status(400).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      if (error instanceof StorageNotConfiguredError) {
+        res.status(503).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      if (error instanceof StorageOperationError) {
+        res.status(500).json({
+          success: false,
+          message: error.message,
+        });
+        return;
+      }
+
+      console.error('Error uploading avatar:', error instanceof Error ? error.message : error);
+      res.status(500).json({
+        success: false,
+        message: 'An error occurred while uploading avatar.',
+      });
+    }
+  }
+
+  /**
+   * DELETE /api/v1/auth/me/avatar
+   * Protected: Removes the authenticated user's avatar and resets to monogram.
+   */
+  static async deleteAvatar(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.auth?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+        });
+        return;
+      }
+
+      const updatedUser = await AuthService.deleteAvatar(userId);
+
+      res.status(200).json({
+        success: true,
+        message: 'Avatar removed successfully',
+        data: {
+          user: updatedUser,
+        },
+      });
+    } catch (error: any) {
+      if (error instanceof UserNotFoundError) {
+        res.status(401).json({
+          success: false,
+          message: 'User account not found or has been deactivated.',
+        });
+        return;
+      }
+
+      console.error('Error deleting avatar:', error instanceof Error ? error.message : error);
+      res.status(500).json({
+        success: false,
+        message: 'An error occurred while removing avatar.',
+      });
+    }
+  }
 }
+

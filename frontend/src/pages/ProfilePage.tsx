@@ -6,12 +6,11 @@ import { extractApiError } from '../api/client';
 import { useAuth } from '../context/useAuth';
 import { PostCard } from '../components/posts/PostCard';
 import { DeleteConfirmModal } from '../components/posts/DeleteConfirmModal';
-import { compressImageToDataUrl } from '../utils/imageCompressor';
 import type { User } from '../types/auth.types';
 import type { Post } from '../types/posts.types';
 
 export const ProfilePage: React.FC = () => {
-  const { logout, refreshUser } = useAuth();
+  const { logout, updateUser } = useAuth();
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState<User | null>(null);
@@ -23,11 +22,21 @@ export const ProfilePage: React.FC = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');
-  const [editAvatarUrl, setEditAvatarUrl] = useState<string | null>(null);
-  const [isProcessingAvatar, setIsProcessingAvatar] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [isAvatarMarkedForDeletion, setIsAvatarMarkedForDeletion] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileUpdateSuccess, setProfileUpdateSuccess] = useState<string | null>(null);
   const [profileUpdateError, setProfileUpdateError] = useState<string | null>(null);
+
+  // Cleanup object URL previews on unmount
+  useEffect(() => {
+    return () => {
+      if (avatarPreviewUrl && avatarPreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreviewUrl);
+      }
+    };
+  }, [avatarPreviewUrl]);
 
   // Author's posts state
   const [userPosts, setUserPosts] = useState<Post[]>([]);
@@ -49,7 +58,6 @@ export const ProfilePage: React.FC = () => {
         setProfile(currentUser);
         setEditName(currentUser.name);
         setEditBio(currentUser.bio || '');
-        setEditAvatarUrl(currentUser.avatarUrl || null);
         setIsLoadingProfile(false);
 
         // Fetch posts for author
@@ -98,27 +106,44 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setIsProcessingAvatar(true);
     setProfileUpdateError(null);
 
-    try {
-      const compressedDataUrl = await compressImageToDataUrl(file, {
-        maxWidth: 400,
-        maxHeight: 400,
-        quality: 0.85,
-      });
-      setEditAvatarUrl(compressedDataUrl);
-    } catch (err: any) {
-      setProfileUpdateError(err.message || 'Failed to process selected image.');
-    } finally {
-      setIsProcessingAvatar(false);
-      // Reset input element so re-selecting same file works
+    // Client-side file size check: max 5MB
+    if (file.size > 5 * 1024 * 1024) {
+      setProfileUpdateError('Avatar file size exceeds the 5MB limit.');
       e.target.value = '';
+      return;
     }
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setProfileUpdateError('Only JPEG, PNG, and WebP images are allowed.');
+      e.target.value = '';
+      return;
+    }
+
+    if (avatarPreviewUrl && avatarPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreviewUrl);
+    }
+
+    const preview = URL.createObjectURL(file);
+    setAvatarFile(file);
+    setAvatarPreviewUrl(preview);
+    setIsAvatarMarkedForDeletion(false);
+    e.target.value = '';
+  };
+
+  const handleRemoveAvatar = () => {
+    if (avatarPreviewUrl && avatarPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreviewUrl);
+    }
+    setAvatarFile(null);
+    setAvatarPreviewUrl(null);
+    setIsAvatarMarkedForDeletion(true);
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -146,21 +171,38 @@ export const ProfilePage: React.FC = () => {
     setProfileUpdateSuccess(null);
 
     try {
-      const updatedUser = await authApi.updateProfile({
-        name: trimmedName,
-        bio: trimmedBio || null,
-        avatarUrl: editAvatarUrl,
-      });
+      let latestUser = profile!;
 
-      setProfile(updatedUser);
-      setEditName(updatedUser.name);
-      setEditBio(updatedUser.bio || '');
-      setEditAvatarUrl(updatedUser.avatarUrl || null);
+      // 1. Process avatar changes via dedicated Supabase storage endpoints
+      if (avatarFile) {
+        latestUser = await authApi.uploadAvatar(avatarFile);
+      } else if (isAvatarMarkedForDeletion && profile?.avatarUrl) {
+        latestUser = await authApi.deleteAvatar();
+      }
+
+      // 2. Process name/bio changes if modified
+      if (trimmedName !== latestUser.name || (trimmedBio || null) !== latestUser.bio) {
+        latestUser = await authApi.updateProfile({
+          name: trimmedName,
+          bio: trimmedBio || null,
+        });
+      }
+
+      if (avatarPreviewUrl && avatarPreviewUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreviewUrl);
+      }
+
+      setProfile(latestUser);
+      setEditName(latestUser.name);
+      setEditBio(latestUser.bio || '');
+      setAvatarFile(null);
+      setAvatarPreviewUrl(null);
+      setIsAvatarMarkedForDeletion(false);
       setIsEditingProfile(false);
       setProfileUpdateSuccess('Your profile has been updated successfully.');
 
-      // Refresh Auth Context so Navbar and app-wide state sync immediately
-      await refreshUser();
+      // Refresh app-wide context synchronously
+      updateUser(latestUser);
     } catch (err) {
       const extracted = extractApiError(err);
       setProfileUpdateError(extracted.message || 'Failed to update profile.');
@@ -170,11 +212,16 @@ export const ProfilePage: React.FC = () => {
   };
 
   const handleCancelEdit = () => {
+    if (avatarPreviewUrl && avatarPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreviewUrl);
+    }
     if (profile) {
       setEditName(profile.name);
       setEditBio(profile.bio || '');
-      setEditAvatarUrl(profile.avatarUrl || null);
     }
+    setAvatarFile(null);
+    setAvatarPreviewUrl(null);
+    setIsAvatarMarkedForDeletion(false);
     setProfileUpdateError(null);
     setIsEditingProfile(false);
   };
@@ -333,9 +380,9 @@ export const ProfilePage: React.FC = () => {
               {/* Photo Upload Section */}
               <div className="profile-avatar-edit-box">
                 <div className="profile-avatar-large-circle" aria-hidden="true">
-                  {editAvatarUrl ? (
+                  {(avatarPreviewUrl || (!isAvatarMarkedForDeletion && profile.avatarUrl)) ? (
                     <img
-                      src={editAvatarUrl}
+                      src={avatarPreviewUrl || profile.avatarUrl || ''}
                       alt="Avatar preview"
                       className="profile-avatar-large-img"
                     />
@@ -347,48 +394,45 @@ export const ProfilePage: React.FC = () => {
                 </div>
 
                 <div className="profile-avatar-edit-actions">
-                  <span className="profile-label">Profile Photo</span>
+                  <span className="profile-label">Profile Avatar</span>
                   <p className="profile-avatar-help">
-                    Choose a photo from your computer or phone gallery (JPEG, PNG, WebP).
+                    Choose a photo from your computer or phone (JPEG, PNG, WebP &middot; max 5MB).
+                    {avatarFile && <span style={{ color: 'var(--color-accent-brass)', display: 'block' }}>Ready to upload: {avatarFile.name}</span>}
+                    {isAvatarMarkedForDeletion && <span style={{ color: '#C93B2B', display: 'block' }}>Avatar will be removed upon saving.</span>}
                   </p>
                   <div className="profile-avatar-btn-group">
                     <input
                       id="avatar-file-upload"
                       type="file"
-                      accept="image/*"
+                      accept="image/jpeg,image/png,image/webp"
                       style={{ display: 'none' }}
                       onChange={handleAvatarFileChange}
-                      disabled={isSavingProfile || isProcessingAvatar}
+                      disabled={isSavingProfile}
                     />
                     <label
                       htmlFor="avatar-file-upload"
                       className={`btn-outline-pill btn-pill-sm ${
-                        isSavingProfile || isProcessingAvatar ? 'disabled' : ''
+                        isSavingProfile ? 'disabled' : ''
                       }`}
                       style={{
-                        cursor:
-                          isSavingProfile || isProcessingAvatar
-                            ? 'not-allowed'
-                            : 'pointer',
+                        cursor: isSavingProfile ? 'not-allowed' : 'pointer',
                       }}
                     >
                       <span>
-                        {isProcessingAvatar
-                          ? 'Optimizing Image...'
-                          : editAvatarUrl
-                          ? 'Change Photo 📷'
-                          : 'Upload Photo 📷'}
+                        {(avatarPreviewUrl || (!isAvatarMarkedForDeletion && profile.avatarUrl))
+                          ? 'Change Avatar 📷'
+                          : 'Upload Avatar 📷'}
                       </span>
                     </label>
 
-                    {editAvatarUrl && (
+                    {(avatarPreviewUrl || (!isAvatarMarkedForDeletion && profile.avatarUrl)) && (
                       <button
                         type="button"
                         className="btn-delete-ghost btn-pill-sm"
-                        onClick={() => setEditAvatarUrl(null)}
-                        disabled={isSavingProfile || isProcessingAvatar}
+                        onClick={handleRemoveAvatar}
+                        disabled={isSavingProfile}
                       >
-                        Remove Photo
+                        Remove Avatar
                       </button>
                     )}
                   </div>

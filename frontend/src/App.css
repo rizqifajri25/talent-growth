@@ -3849,6 +3849,198 @@
   }
 }
 
+/* =========================================================================
+   Phase 9: Media Management, Cover Images & Avatar Integration
+   ========================================================================= */
+
+/* Article Card Cover Thumbnail */
+.post-card-cover-wrapper {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-bottom: 1px solid var(--color-hairline, #E8E6DF);
+  background: var(--color-surface-subtle, #F5F4F0);
+  border-radius: 8px 8px 0 0;
+}
+
+.post-card-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.aurora-post-card:hover .post-card-cover-img,
+.author-essay-card:hover .post-card-cover-img {
+  transform: scale(1.03);
+}
+
+/* Post Detail Editorial Hero Cover */
+.article-hero-cover-container {
+  margin: 2.25rem 0 2.75rem 0;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-hairline, #E8E6DF);
+  background: var(--color-surface-subtle, #F5F4F0);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.article-hero-cover-img {
+  width: 100%;
+  max-height: 520px;
+  object-fit: cover;
+  display: block;
+}
+
+.article-hero-cover-caption {
+  font-family: var(--font-body, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.85rem;
+  color: var(--color-warm-graphite, #6B6963);
+  font-style: italic;
+  padding: 0.75rem 1.25rem;
+  background: var(--color-surface-porcelain, #FBFBFA);
+  border-top: 1px solid var(--color-hairline, #E8E6DF);
+  margin: 0;
+}
+
+/* Editorial Post Cover Upload Component (New & Edit Post) */
+.cover-upload-section {
+  background: var(--color-surface-porcelain, #FBFBFA);
+  border: 1px solid var(--color-hairline, #E8E6DF);
+  border-radius: 10px;
+  padding: 1.5rem;
+  margin-bottom: 1.75rem;
+}
+
+.cover-upload-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 0.5rem;
+}
+
+.cover-upload-title {
+  font-family: var(--font-body, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--color-deep-carbon, #121212);
+}
+
+.cover-upload-hint {
+  font-size: 0.8rem;
+  color: var(--color-warm-graphite, #6B6963);
+  margin-bottom: 1rem;
+}
+
+.cover-preview-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: 320px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--color-hairline, #E8E6DF);
+  margin-bottom: 1rem;
+  background: #000;
+}
+
+.cover-preview-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.cover-preview-overlay {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.btn-cover-remove {
+  background: rgba(18, 18, 18, 0.75);
+  color: #FFFFFF;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: all 0.2s ease;
+}
+
+.btn-cover-remove:hover {
+  background: #C93B2B;
+  border-color: #C93B2B;
+}
+
+.cover-dropzone-box {
+  border: 2px dashed var(--color-hairline, #E8E6DF);
+  border-radius: 8px;
+  padding: 2rem 1.5rem;
+  text-align: center;
+  background: #FFFFFF;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.cover-dropzone-box:hover {
+  border-color: var(--color-accent-brass, #C2A676);
+  background: var(--color-surface-porcelain, #FBFBFA);
+}
+
+.cover-dropzone-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  display: block;
+}
+
+.cover-dropzone-text {
+  font-size: 0.9rem;
+  color: var(--color-deep-carbon, #121212);
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+}
+
+.cover-dropzone-sub {
+  font-size: 0.75rem;
+  color: var(--color-warm-graphite, #6B6963);
+}
+
+.cover-alt-input-group {
+  margin-top: 1rem;
+}
+
+.cover-alt-input-group label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--color-warm-graphite, #6B6963);
+  margin-bottom: 0.35rem;
+}
+
+.cover-alt-input {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  font-size: 0.875rem;
+  border: 1px solid var(--color-hairline, #E8E6DF);
+  border-radius: 6px;
+  background: #FFFFFF;
+  color: var(--color-deep-carbon, #121212);
+  transition: border-color 0.2s ease;
+}
+
+.cover-alt-input:focus {
+  outline: none;
+  border-color: var(--color-accent-brass, #C2A676);
+}
+
+
 
 
 

@@ -53,4 +53,5 @@ export interface AuthContextType {
   login: (payload: LoginPayload) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  updateUser: (user: User) => void;
 }
