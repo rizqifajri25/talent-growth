@@ -195,36 +195,36 @@ export const HomePage: React.FC = () => {
       {/* Editorial Milestones / Philosophy Section */}
       <section className="home-milestones-section">
         <div className="milestones-inner">
-          <span className="section-label">PLATFORM PRINCIPLES</span>
+          <span className="section-label">PLATFORM OPERATIONS</span>
           <h2 className="section-headline">
-            Designed for clarity, focus, and technical depth.
+            A structured workflow from authoring to community discovery.
           </h2>
 
           <div className="milestone-grid">
             <div className="milestone-card">
               <span className="milestone-num">01</span>
-              <h3 className="milestone-title">Curated Essays</h3>
+              <h3 className="milestone-title">Authoring & Publishing</h3>
               <p className="milestone-desc">
-                High-signal writing on architecture, full-stack engineering, and career
-                trajectories, crafted with utmost typographical care.
+                Writers draft essays in a dedicated Markdown workspace with real-time preview,
+                categorize work into curated topic taxonomies, and attach editorial cover imagery.
               </p>
             </div>
 
             <div className="milestone-card">
               <span className="milestone-num">02</span>
-              <h3 className="milestone-title">Verified Identity</h3>
+              <h3 className="milestone-title">Discovery & Discussion</h3>
               <p className="milestone-desc">
-                Stateful authentication backed by PostgreSQL database sessions and bcrypt
-                password hashing with zero client Web Storage exposure.
+                Readers explore publications through topic taxonomies and archive search,
+                participating in structured, threaded conversations beneath each essay.
               </p>
             </div>
 
             <div className="milestone-card">
               <span className="milestone-num">03</span>
-              <h3 className="milestone-title">Author Ownership</h3>
+              <h3 className="milestone-title">Author Workspace & Ownership</h3>
               <p className="milestone-desc">
-                Complete control over your essays. Authors can compose, update, and remove
-                their publications with cryptographic permission checks.
+                Contributors curate their public profile with personal bios and avatars,
+                showcase work in the Writers directory, and maintain full ownership to update or withdraw publications.
               </p>
             </div>
           </div>
