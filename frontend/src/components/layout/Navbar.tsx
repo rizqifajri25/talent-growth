@@ -60,13 +60,12 @@ export const Navbar: React.FC = () => {
           >
             Topics
           </span>
-          <span
-            className="nav-link nav-link-disabled"
-            title="Author directory arriving in Phase 7"
-            aria-disabled="true"
+          <NavLink
+            to="/writers"
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
           >
             Writers
-          </span>
+          </NavLink>
         </nav>
 
         {/* Action Group */}
@@ -138,6 +137,14 @@ export const Navbar: React.FC = () => {
             onClick={() => setMobileMenuOpen(false)}
           >
             Essays
+          </NavLink>
+
+          <NavLink
+            to="/writers"
+            className="nav-link"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Writers
           </NavLink>
 
           {isAuthenticated && user ? (

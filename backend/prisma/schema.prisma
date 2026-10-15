@@ -15,6 +15,7 @@ model User {
   name         String        @db.VarChar(255)
   email        String        @unique @db.VarChar(255)
   passwordHash String        @map("password_hash") @db.VarChar(255)
+  bio          String?       @db.VarChar(500)
   avatarUrl    String?       @map("avatar_url") @db.Text
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")

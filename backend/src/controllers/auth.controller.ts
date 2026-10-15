@@ -4,6 +4,7 @@ import {
   loginSchema,
   formatZodErrors,
 } from '../validators/auth.validators';
+import { updateProfileSchema } from '../validators/profile.validators';
 import {
   AuthService,
   DuplicateEmailError,
@@ -162,6 +163,57 @@ export class AuthController {
       res.status(500).json({
         success: false,
         message: 'An error occurred while fetching user profile.',
+      });
+    }
+  }
+
+  /**
+   * PATCH /api/v1/auth/me
+   * Updates authenticated user's profile (name and/or bio).
+   */
+  static async updateMe(req: Request, res: Response): Promise<void> {
+    try {
+      const userId = req.auth?.userId;
+      if (!userId) {
+        res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+        });
+        return;
+      }
+
+      const parseResult = updateProfileSchema.safeParse(req.body);
+      if (!parseResult.success) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid profile data',
+          errors: formatZodErrors(parseResult.error),
+        });
+        return;
+      }
+
+      const updatedUser = await AuthService.updateProfile(userId, parseResult.data);
+
+      res.status(200).json({
+        success: true,
+        message: 'Profile updated successfully',
+        data: {
+          user: updatedUser,
+        },
+      });
+    } catch (error) {
+      if (error instanceof UserNotFoundError) {
+        res.status(401).json({
+          success: false,
+          message: 'User account not found or has been deactivated.',
+        });
+        return;
+      }
+
+      console.error('Update profile error:', error instanceof Error ? error.message : error);
+      res.status(500).json({
+        success: false,
+        message: 'An error occurred while updating profile.',
       });
     }
   }

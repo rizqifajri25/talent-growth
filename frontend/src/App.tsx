@@ -10,6 +10,8 @@ import { EssaysPage } from './pages/EssaysPage';
 import { PostDetailPage } from './pages/PostDetailPage';
 import { NewPostPage } from './pages/NewPostPage';
 import { EditPostPage } from './pages/EditPostPage';
+import { WritersPage } from './pages/WritersPage';
+import { PublicAuthorPage } from './pages/PublicAuthorPage';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import './App.css';
 
@@ -23,6 +25,8 @@ const App: React.FC = () => {
             <Route index element={<HomePage />} />
             <Route path="essays" element={<EssaysPage />} />
             <Route path="essays/:id" element={<PostDetailPage />} />
+            <Route path="writers" element={<WritersPage />} />
+            <Route path="writers/:id" element={<PublicAuthorPage />} />
 
             {/* Public Guest Auth Routes */}
             <Route path="login" element={<LoginPage />} />

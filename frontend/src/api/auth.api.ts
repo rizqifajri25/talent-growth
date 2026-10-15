@@ -5,6 +5,7 @@ import type {
   RegisterPayload,
   LoginPayload,
   User,
+  UpdateProfilePayload,
 } from '../types/auth.types';
 
 export const authApi = {
@@ -55,6 +56,22 @@ export const authApi = {
 
     if (!response.data.data?.user) {
       throw new Error(response.data.message || 'Failed to retrieve user profile.');
+    }
+
+    return response.data.data.user;
+  },
+
+  /**
+   * Updates display name and/or bio of currently authenticated user.
+   */
+  async updateProfile(payload: UpdateProfilePayload): Promise<User> {
+    const response = await apiClient.patch<ApiResponse<{ user: User }>>(
+      '/auth/me',
+      payload
+    );
+
+    if (!response.data.data?.user) {
+      throw new Error(response.data.message || 'Failed to update user profile.');
     }
 
     return response.data.data.user;

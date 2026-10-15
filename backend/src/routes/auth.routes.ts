@@ -11,5 +11,6 @@ router.post('/login', AuthController.login);
 // Protected endpoints
 router.post('/logout', requireAuth, AuthController.logout);
 router.get('/me', requireAuth, AuthController.getMe);
+router.patch('/me', requireAuth, AuthController.updateMe);
 
 export default router;

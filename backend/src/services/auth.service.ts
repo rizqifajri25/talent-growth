@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../config/prisma';
 import { authConfig } from '../config/auth';
 import { RegisterInput, LoginInput } from '../validators/auth.validators';
+import { UpdateProfileInput } from '../validators/profile.validators';
 
 export class DuplicateEmailError extends Error {
   constructor(message = 'An account with this email address already exists.') {
@@ -37,6 +38,7 @@ export interface SafeUser {
   id: string;
   name: string;
   email: string;
+  bio?: string | null;
   avatarUrl: string | null;
   createdAt: Date;
   updatedAt?: Date;
@@ -121,6 +123,7 @@ export class AuthService {
             id: true,
             name: true,
             email: true,
+            bio: true,
             avatarUrl: true,
             createdAt: true,
           },
@@ -172,6 +175,7 @@ export class AuthService {
         id: true,
         name: true,
         email: true,
+        bio: true,
         passwordHash: true,
         avatarUrl: true,
         createdAt: true,
@@ -216,6 +220,7 @@ export class AuthService {
       id: user.id,
       name: user.name,
       email: user.email,
+      bio: user.bio,
       avatarUrl: user.avatarUrl,
       createdAt: user.createdAt,
     };
@@ -253,6 +258,7 @@ export class AuthService {
         id: true,
         name: true,
         email: true,
+        bio: true,
         avatarUrl: true,
         createdAt: true,
         updatedAt: true,
@@ -264,5 +270,44 @@ export class AuthService {
     }
 
     return user;
+  }
+
+  /**
+   * Updates authenticated user's profile (name and/or bio only).
+   */
+  static async updateProfile(
+    userId: string,
+    input: UpdateProfileInput
+  ): Promise<SafeUser> {
+    const dataToUpdate: { name?: string; bio?: string | null } = {};
+    if (input.name !== undefined) {
+      dataToUpdate.name = input.name;
+    }
+    if (input.bio !== undefined) {
+      dataToUpdate.bio = input.bio;
+    }
+
+    try {
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: dataToUpdate,
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          bio: true,
+          avatarUrl: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      });
+
+      return updatedUser;
+    } catch (error: any) {
+      if (error?.code === 'P2025') {
+        throw new UserNotFoundError();
+      }
+      throw error;
+    }
   }
 }

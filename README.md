@@ -16,7 +16,7 @@ Talent Growth Blog Platform is a web publication and blogging platform enabling 
 | Database    | PostgreSQL (Local `talent_growth_dev` / Supabase)            | ✅ Relational Schema         |
 | ORM         | Prisma ORM (v7.10.0 + `@prisma/adapter-pg` driver)          | ✅ Configured & Migrated     |
 | Auth        | JWT (HS256) + bcrypt (12 rounds) + Zod + In-Memory RAM Store | ✅ Tested & Verified         |
-| Testing     | Vitest, Supertest                                           | ✅ **65/65 Tests Passing**   |
+| Testing     | Vitest, Supertest                                           | ✅ **87/87 Tests Passing**   |
 | Linter      | Oxlint (Fast Rust-based linting, 0 warnings, 0 errors)       | ✅ Enforced                  |
 | HTTP Client | Axios (Centralized instance with Bearer interceptor)        | ✅ Implemented               |
 | Deployment  | Vercel (Frontend), Railway (Backend), Supabase (DB)         | ⏳ Planned (Phase 11)        |
@@ -53,16 +53,13 @@ talent-growth/
 │   ├── public/
 │   │   ├── images/            # Curated Aurora 3D architectural imagery
 │   │   │   ├── aurora-home.jpg
-│   │   │   ├── aurora-login.jpg
-│   │   │   └── aurora-register.jpg
-│   │   ├── favicon.svg
-│   │   └── icons.svg
-│   ├── src/
+│   │   │   ├── aurora-login.│   ├── src/
 │   │   ├── api/               # Centralized API service layer
 │   │   │   ├── client.ts      # Axios instance, in-memory tokenStore, extractApiError
-│   │   │   ├── auth.api.ts    # Auth endpoints (register, login, logout, getMe)
+│   │   │   ├── auth.api.ts    # Auth endpoints (register, login, logout, getMe, updateProfile)
 │   │   │   ├── posts.api.ts   # Blog post CRUD service
-│   │   │   └── comments.api.ts# Threaded comments service (get, create, update, delete)
+│   │   │   ├── comments.api.ts# Threaded comments service (get, create, update, delete)
+│   │   │   └── authors.api.ts # Author directory & public profiles service
 │   │   ├── components/        # Reusable UI components
 │   │   │   ├── auth/
 │   │   │   │   └── ProtectedRoute.tsx # Route guard redirecting to /login
@@ -72,27 +69,30 @@ talent-growth/
 │   │   │   │   └── CommentDeleteModal.tsx # Accessible soft-delete confirmation modal
 │   │   │   ├── layout/
 │   │   │   │   ├── AppLayout.tsx      # Shell layout (Navbar, Outlet, Footer)
-│   │   │   │   └── Navbar.tsx         # Aurora sticky header with responsive mobile drawer
+│   │   │   │   └── Navbar.tsx         # Aurora sticky header with Writers link & mobile drawer
 │   │   │   └── posts/
 │   │   │       ├── PostCard.tsx       # Editorial article card with category badge
 │   │   │       └── DeleteConfirmModal.tsx # Accessible modal for post removal
 │   │   ├── context/           # React context providers & hooks
 │   │   │   ├── authContextDef.ts # Fast Refresh safe auth context definition
-│   │   │   ├── AuthContext.tsx   # AuthProvider managing authentication state
+│   │   │   ├── AuthContext.tsx   # AuthProvider managing authentication state & user sync
 │   │   │   └── useAuth.ts        # Custom hook for consuming auth context
 │   │   ├── pages/             # Page components
 │   │   │   ├── HomePage.tsx       # Split-hero with latest live PostgreSQL essays
 │   │   │   ├── EssaysPage.tsx     # Full archive with category topic filters
 │   │   │   ├── PostDetailPage.tsx # Editorial reading view with threaded comments section
+│   │   │   ├── WritersPage.tsx    # Author directory of published contributors
+│   │   │   ├── PublicAuthorPage.tsx # Public author profile with author bio and published essays
 │   │   │   ├── NewPostPage.tsx    # Authoring desk for composing new essays
 │   │   │   ├── EditPostPage.tsx   # Authoring desk for revising existing essays
 │   │   │   ├── LoginPage.tsx      # Split-panel sign in with error handling
 │   │   │   ├── RegisterPage.tsx   # Split-panel registration with UTF-8 limits
-│   │   │   └── ProfilePage.tsx    # Author workspace with balanced padding & essay manager
+│   │   │   └── ProfilePage.tsx    # Author workspace with profile editor (name, bio) & essay manager
 │   │   ├── types/             # TypeScript definitions
-│   │   │   ├── auth.types.ts      # User, session, payload, and response types
+│   │   │   ├── auth.types.ts      # User (with bio), session, update payload, and response types
 │   │   │   ├── posts.types.ts     # Post, Author, CRUD payloads, API wrappers
-│   │   │   └── comments.types.ts  # Comment, CommentAuthor, payloads, API wrappers
+│   │   │   ├── comments.types.ts  # Comment, CommentAuthor, payloads, API wrappers
+│   │   │   └── authors.types.ts   # AuthorSummary, PublicAuthorProfile, AuthorPost
 │   │   ├── App.tsx            # Root router & protected route configuration
 │   │   ├── App.css            # Aurora editorial styling & responsive rules
 │   │   ├── index.css          # Aurora design tokens & base typography
@@ -104,38 +104,45 @@ talent-growth/
 │   │   ├── migrations/        # Version-controlled SQL migrations
 │   │   │   ├── 20261014120000_init/
 │   │   │   │   └── migration.sql # Initial schema (User, Post, Comment, AuthSession)
-│   │   │   └── 20261014232133_add_nested_comments_and_soft_delete/
-│   │   │       └── migration.sql # Self-referencing parent_id & deleted_at fields
-│   │   └── schema.prisma      # Prisma schema definition with self-referencing relation
+│   │   │   ├── 20261014232133_add_nested_comments_and_soft_delete/
+│   │   │   │   └── migration.sql # Self-referencing parent_id & deleted_at fields
+│   │   │   └── 20261015011234_add_user_bio/
+│   │   │       └── migration.sql # Safe optional bio column on User model
+│   │   └── schema.prisma      # Prisma schema definition with bio field
 │   ├── src/
 │   │   ├── config/            # Server & database configurations
 │   │   │   ├── auth.ts        # Centralized JWT config
 │   │   │   └── prisma.ts      # Singleton Prisma Client instance
 │   │   ├── controllers/       # HTTP controllers
-│   │   │   ├── auth.controller.ts     # Register, login, logout, getMe
+│   │   │   ├── auth.controller.ts     # Register, login, logout, getMe, updateMe
 │   │   │   ├── posts.controller.ts    # Blog post CRUD controllers
-│   │   │   └── comments.controller.ts # Nested comments & mutation controllers
+│   │   │   ├── comments.controller.ts # Nested comments & mutation controllers
+│   │   │   └── authors.controller.ts  # Author directory & public profile controllers
 │   │   ├── generated/         # Generated Prisma Client
 │   │   ├── middleware/        # Express middleware
 │   │   │   └── requireAuth.ts # Bearer token & active database session verification
 │   │   ├── routes/            # Route declarations
-│   │   │   ├── auth.routes.ts     # /api/v1/auth routes
+│   │   │   ├── auth.routes.ts     # /api/v1/auth routes (including PATCH /me)
 │   │   │   ├── posts.routes.ts    # /api/v1/posts routes
 │   │   │   ├── comments.routes.ts # /api/v1/posts/:id/comments & /comments/:id
+│   │   │   ├── authors.routes.ts  # /api/v1/authors routes
 │   │   │   └── health.routes.ts   # Health & diagnostic checks
 │   │   ├── services/          # Business logic layer
-│   │   │   ├── auth.service.ts     # Password hashing, JWT sessions, revocation
+│   │   │   ├── auth.service.ts     # Password hashing, JWT sessions, profile updates
 │   │   │   ├── posts.service.ts    # Post queries, safe author selects, ownership enforcement
-│   │   │   └── comments.service.ts # Tree builder, parent validation, soft-delete policy
+│   │   │   ├── comments.service.ts # Tree builder, parent validation, soft-delete policy
+│   │   │   └── authors.service.ts  # Published author aggregation, public profile projection
 │   │   ├── validators/        # Zod request validators
 │   │   │   ├── auth.validators.ts     # Input validation & normalization
 │   │   │   ├── posts.validators.ts    # UUID, title, content, category validation
-│   │   │   └── comments.validators.ts # UUID, content (1-5000), parentId validation
+│   │   │   ├── comments.validators.ts # UUID, content (1-5000), parentId validation
+│   │   │   └── profile.validators.ts  # Author UUID and profile update (name, bio) validation
 │   │   ├── __tests__/         # Automated test suites
 │   │   │   ├── auth.validators.test.ts # 10 unit tests
 │   │   │   ├── auth.api.test.ts        # 16 integration tests
 │   │   │   ├── posts.api.test.ts       # 17 CRUD integration tests
-│   │   │   └── comments.api.test.ts    # 22 threaded comments integration tests
+│   │   │   ├── comments.api.test.ts    # 22 threaded comments integration tests
+│   │   │   └── authors.api.test.ts     # 22 author directory & profile integration tests
 │   │   ├── app.ts             # Express application & route registration
 │   │   └── server.ts          # Server entry point
 │   ├── package.json           # Backend dependencies & scripts
@@ -151,7 +158,63 @@ talent-growth/
 
 ## 📡 Backend API Endpoints
 
-### 1. Blog Post CRUD Endpoints (`/api/v1/posts`)
+### 1. Author Directory & Public Profiles (`/api/v1/authors`)
+
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/authors` | **Public** | Retrieves all published authors (`postCount >= 1`), sorted alphabetically by name. |
+| `GET` | `/api/v1/authors/:id` | **Public** | Retrieves public author profile with author bio and published essays sorted newest first. |
+
+#### Design Decision — Published Contributor Directory:
+- `GET /api/v1/authors` filters by `posts: { some: {} }`. Registered users without any published essays do not clutter the public contributor directory.
+- `GET /api/v1/authors/:id` remains accessible for any registered user ID, returning `postCount: 0` and an empty array (`posts: []`) with an Aurora empty state.
+
+#### Sensitive Data Security:
+- Author profiles strictly expose `{ id, name, bio, avatarUrl, joinedAt, postCount, posts }`.
+- User emails, password hashes, and session data are **never exposed** in directory or public profile responses.
+
+```json
+// Example GET /api/v1/authors Response
+{
+  "success": true,
+  "message": "Authors retrieved successfully",
+  "data": {
+    "authors": [
+      {
+        "id": "8e98a9a1-c121-4300-bb26-6ce0f0f564e9",
+        "name": "beliau",
+        "bio": "Senior distributed systems engineer.",
+        "avatarUrl": null,
+        "joinedAt": "2026-10-14T22:44:49.236Z",
+        "postCount": 3
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 2. Profile Management Endpoints (`/api/v1/auth`)
+
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/auth/me` | **Protected** | Retrieves current authenticated user profile including `bio`. |
+| `PATCH` | `/api/v1/auth/me` | **Protected** | Updates current authenticated user's `name` and/or `bio`. Disallowed fields are rejected. |
+| `POST` | `/api/v1/auth/register` | Public | Registers new author with bcrypt (12 rounds) and creates active database session. |
+| `POST` | `/api/v1/auth/login` | Public | Verifies credentials and issues JWT token with database session tracking. |
+| `POST` | `/api/v1/auth/logout` | **Protected** | Instantly revokes session in PostgreSQL (`revokedAt = NOW()`). |
+
+#### Profile Update Validation Rules (Zod):
+- Identity strictly derived from JWT token context (`req.auth.userId`). No user ID is accepted in URL or request body.
+- `name`: Optional string, trimmed, 1–80 characters. Cannot be empty string.
+- `bio`: Optional string, maximum 500 characters. Empty or whitespace-only values are automatically normalized to `null`.
+- At least one updateable field (`name` or `bio`) must be provided.
+- Disallowed fields (`id`, `email`, `passwordHash`, `avatarUrl`, `createdAt`, etc.) are ignored and never written to the database.
+
+---
+
+### 3. Blog Post CRUD Endpoints (`/api/v1/posts`)
 
 | Method | Endpoint | Access | Description |
 | :--- | :--- | :--- | :--- |
@@ -161,45 +224,20 @@ talent-growth/
 | `PUT` | `/api/v1/posts/:id` | **Protected** | Updates post. Enforces ownership: returns 403 Forbidden if current user is not author. |
 | `DELETE` | `/api/v1/posts/:id` | **Protected** | Deletes post. Enforces ownership: returns 403 Forbidden if current user is not author. |
 
-#### Request Validation Rules (Zod):
-- `title`: String, trimmed, min 1 character, max 255 characters.
-- `content`: String, trimmed, min 1 character, max 50,000 characters.
-- `category`: String, optional, max 100 characters (saved as `null` if empty).
-- `id`: Valid UUID v4.
+---
 
-#### Sensitive Data Security:
-- Author info returned in post responses contains only `{ id, name, avatarUrl }`.
-- Password hashes, user emails, and database sessions are **strictly excluded** from post responses.
-
-### 2. Nested Comments Endpoints (`/api/v1/posts/:id/comments` & `/api/v1/comments/:id`)
+### 4. Nested Comments Endpoints (`/api/v1/posts/:id/comments` & `/api/v1/comments/:id`)
 
 | Method | Endpoint | Access | Description |
 | :--- | :--- | :--- | :--- |
 | `GET` | `/api/v1/posts/:id/comments` | **Public** | Retrieves threaded nested comments tree for an essay, sorted earliest first (`createdAt: 'asc'`). |
 | `POST` | `/api/v1/posts/:id/comments` | **Protected** | Creates a top-level comment or nested reply. Identity strictly derived from JWT token (`req.auth.userId`). |
 | `PUT` | `/api/v1/comments/:id` | **Protected** | Updates comment content. Author ownership strictly enforced (403 if not owner). Cannot edit soft-deleted comments. |
-| `DELETE` | `/api/v1/comments/:id` | **Protected** | Deletes comment. Author ownership strictly enforced. Preserves tree via soft delete if replies exist; hard-deletes if leaf. |
+| `DELETE` | `/api/v1/comments/:id` | **Protected** | Deletes comment. Preserves tree via soft delete if replies exist; hard-deletes if leaf. |
 
-#### Request Validation Rules (Zod):
-- `content`: String, trimmed, min 1 character, max 5,000 characters. Rejects empty/whitespace-only input.
-- `parentId`: Optional string, valid UUID. Must reference an existing comment belonging to the same essay post. Cross-post parent attacks return 400 Bad Request.
-- `id`: Valid UUID v4 for post ID or comment ID.
+---
 
-#### Thread Preservation & Soft Delete Policy:
-- **Leaf Comments (0 replies)**: Physically deleted from PostgreSQL (`prisma.comment.delete`).
-- **Parent Comments (≥ 1 replies)**: Soft deleted with `deletedAt = NOW()`. The response returns the placeholder text `"This comment has been deleted"` without leaking original content, while ensuring all community replies remain visible in the tree.
-- Soft-deleted comments cannot be edited or resurrected.
-
-### 3. Authentication Endpoints (`/api/v1/auth`)
-
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `POST` | `/api/v1/auth/register` | Public | Registers new author with bcrypt (12 rounds) and creates active database session. |
-| `POST` | `/api/v1/auth/login` | Public | Verifies credentials and issues JWT token with database session tracking. |
-| `POST` | `/api/v1/auth/logout` | Protected | Instantly revokes session in PostgreSQL (`revokedAt = NOW()`). |
-| `GET` | `/api/v1/auth/me` | Protected | Retrieves current user profile from database using Bearer token. |
-
-### 4. Diagnostic Endpoints (`/api/v1/health`)
+### 5. Diagnostic Endpoints (`/api/v1/health`)
 - `GET /api/v1/health` — Basic API health check
 - `GET /api/v1/health/db` — PostgreSQL connection and latency check
 
@@ -212,9 +250,11 @@ talent-growth/
 | `/` | `HomePage` | Public | Split-hero with recent essays fetched from PostgreSQL, reading CTAs. |
 | `/essays` | `EssaysPage` | Public | The Archive: complete list of essays with topic category filter pills. |
 | `/essays/:id` | `PostDetailPage` | Public | Reading view with full article, author controls, and Aurora threaded comments conversation. |
+| `/writers` | `WritersPage` | Public | The Writers: directory of published contributors with bio, essay count, and profile links. |
+| `/writers/:id` | `PublicAuthorPage`| Public | Public author profile showing biography, join date, metrics, and published essay catalog. |
 | `/essays/new` | `NewPostPage` | **Protected** | Editorial desk for composing and publishing essays with client validation. |
 | `/essays/:id/edit` | `EditPostPage` | **Protected** | Editorial desk for revising essays. Verifies ownership; non-owners get 403 card. |
-| `/profile` | `ProfilePage` | **Protected** | Author workspace displaying account metadata and manager for authored essays. |
+| `/profile` | `ProfilePage` | **Protected** | Author workspace with live profile management (name, bio counter), read-only email, and essay manager. |
 | `/login` | `LoginPage` | Public (Guest) | Split-panel login with error banners and redirect back to current essay. |
 | `/register` | `RegisterPage` | Public (Guest) | Split-panel registration with UTF-8 byte validation. |
 | `*` | `Navigate` | Public | Wildcard redirect to `/`. |
@@ -223,8 +263,8 @@ talent-growth/
 
 ## 🧪 Testing & Verification
 
-### Full Test Suite (65 Passing Tests)
-Run all unit and integration tests across backend authentication, blog post CRUD, and comments:
+### Full Test Suite (87 Passing Tests)
+Run all unit and integration tests across backend authentication, blog post CRUD, comments, and author directory/profiles:
 
 ```bash
 cd backend
@@ -232,10 +272,11 @@ npm test
 ```
 
 Test coverage includes:
-- `auth.validators.test.ts` (10 tests): UTF-8 72-byte passwords, email normalization, required fields.
+- `authors.api.test.ts` (22 tests): Public directory access, contributor postCount filtering, name sorting, bio display, email/passwordHash privacy protection, public profile by ID, newest-first essay ordering, 0-post user empty state, invalid UUID (400), user not found (404), profile update (`PATCH /api/v1/auth/me`), name validation (1-80 chars), bio length (500 chars), whitespace normalization to `null`, rejection of empty update body, forbidden field protection (`email`, `id`, `avatarUrl`), 401 unauthenticated check, revoked session rejection, database persistence, and isolated test cleanup.
+- `comments.api.test.ts` (22 tests): Threaded comments tree, parentId validation, cross-post rejection, leaf hard-delete, parent soft-delete.
 - `posts.api.test.ts` (17 tests): Public reads, safe author filtering, creation with token identity, ownership enforcement for edit/delete, 403 for unauthorized users, 404 for missing records.
-- `comments.api.test.ts` (22 tests): Public reads with safe author filtering, tree structure, nested depth replies, cross-post parent rejection, token enforcement, length limits, ownership authorization for edit/delete, soft-delete with reply preservation, leaf hard-delete, and isolated test cleanup.
 - `auth.api.test.ts` (16 tests): Registration, login, duplicate email rejection, session revocation, live db check.
+- `auth.validators.test.ts` (10 tests): UTF-8 72-byte passwords, email normalization, required fields.
 
 ### Frontend Quality & Typecheck
 Verify strict TypeScript compilation and linting:
@@ -243,7 +284,7 @@ Verify strict TypeScript compilation and linting:
 ```bash
 cd frontend
 
-# Oxlint (0 warnings, 0 errors on 29 files)
+# Oxlint (0 warnings, 0 errors on 33 files)
 npm run lint
 
 # Compile and build Vite production bundle
@@ -294,32 +335,25 @@ npm run dev
 
 ---
 
-## ✅ Current Status (Phase 6 Completed)
+## ✅ Current Status (Phase 7 Completed)
 
 - [x] **Phase 1**: Full-stack scaffolding (React 19 + Express + TypeScript)
 - [x] **Phase 2**: PostgreSQL schema, Prisma ORM v7, database health checks
-- [x] **Phase 3**: JWT authentication, bcrypt (12 rounds), session revocation, 26 tests
+- [x] **Phase 3**: JWT authentication, bcrypt (12 rounds), session tracking, 26 tests
 - [x] **Phase 4**: Frontend authentication integration, in-memory tokens, protected routes, Aurora visual system
-- [x] **Phase 5**: Full-Stack Blog Post CRUD & Aurora Editorial Experience:
-  - [x] Backend CRUD endpoints (`GET /posts`, `GET /posts/:id`, `POST /posts`, `PUT /posts/:id`, `DELETE /posts/:id`)
-  - [x] Server-side Zod validation and safe author queries (no leaked password hashes)
-  - [x] Strict ownership authorization (403 Forbidden for non-authors on update and delete)
-  - [x] 17 Vitest integration tests with safe cleanup
-  - [x] Frontend `postsApi` service integrated into centralized `apiClient`
-  - [x] The Archive (`/essays`) with topic category filters
-  - [x] Reading view (`/essays/:id`) with 18px body, line-height 1.85, and owner action buttons
-  - [x] Composition desk (`/essays/new`) and Revision desk (`/essays/:id/edit`)
-  - [x] Accessible `DeleteConfirmModal` with permanent deletion warning
-- [x] **Phase 6**: Nested Comments System, Replies, Ownership Authorization & Aurora UI:
-  - [x] Extended PostgreSQL schema via Prisma migration with self-referencing `parent_id` and `deleted_at` fields.
-  - [x] Public threaded comments endpoint `GET /api/v1/posts/:id/comments` with tree building and safe author masking.
-  - [x] Protected creation endpoint `POST /api/v1/posts/:id/comments` with length limits (1-5,000) and cross-post parent validation.
-  - [x] Protected revision endpoint `PUT /api/v1/comments/:id` with strict ownership check (403) and deleted-comment protection.
-  - [x] Protected deletion endpoint `DELETE /api/v1/comments/:id` implementing soft-delete for comments with replies (replacing content with notice) and hard-delete for leaf comments.
-  - [x] 22 new Vitest integration tests (total **65/65 passing tests**) with isolated test cleanup.
-  - [x] Frontend `commentsApi` service integrated into centralized `apiClient`.
-  - [x] Aurora `CommentSection`, recursive `CommentItem`, and accessible `CommentDeleteModal` components on `/essays/:id`.
-  - [x] Inline reply and edit forms, live character counters, guest sign-in prompts with return redirect, and mobile-responsive nesting.
+- [x] **Phase 5**: Full-Stack Blog Post CRUD & Aurora Editorial Experience (17 tests)
+- [x] **Phase 6**: Nested Comments System, Replies, Ownership Authorization & Aurora UI (22 tests)
+- [x] **Phase 7**: Author Directory, Public Author Profiles & Profile Management:
+  - [x] Extended `User` model with optional `bio: String? @db.VarChar(500)` via Prisma migration `20261015011234_add_user_bio`. Existing user data preserved with `bio = null`.
+  - [x] Public endpoint `GET /api/v1/authors`: Contributor directory displaying published authors with postCount, bio, join date, sorted alphabetically. Sensitive fields (email, passwordHash, sessions) strictly excluded.
+  - [x] Public endpoint `GET /api/v1/authors/:id`: Public author profile with biography, metrics, and published essays ordered newest first.
+  - [x] Protected endpoint `PATCH /api/v1/auth/me`: Allows authenticated user to update display name and bio (max 500 chars, empty normalized to `null`). Disallowed fields (`id`, `email`, etc.) safely blocked.
+  - [x] 22 new Vitest integration tests (total **87/87 passing tests**) with isolated test cleanup.
+  - [x] Frontend `authorsApi` service integrated into centralized `apiClient`.
+  - [x] Aurora Writers Directory page (`/writers`) with responsive grid, contributor cards, and empty state.
+  - [x] Aurora Public Author Profile page (`/writers/:id`) with author hero card, metrics, and published essays list.
+  - [x] Aurora Profile Management in `/profile`: Edit Name, live Bio character counter (`X / 500`), read-only email, Save/Cancel, and Auth Context synchronization without re-login.
+  - [x] Activated `Writers` NavLink in Navbar (desktop & mobile drawer).
   - [x] Zero browser inspection rule respected; frontend build and oxlint 100% clean.
 
 ---
@@ -334,7 +368,7 @@ npm run dev
 | 4     | Frontend Auth Integration (In-Memory RAM)      | ✅ Done     |
 | 5     | Blog post CRUD & Aurora Editorial Experience   | ✅ Done     |
 | 6     | Nested Comments System & Threaded Conversation | ✅ Done     |
-| 7     | User profiles & author directory               | ⏳ Upcoming |
+| 7     | Author Directory, Public Profiles & Profile Mgmt| ✅ Done     |
 | 8     | Search, pagination, markdown                   | ⏳ Upcoming |
 | 9     | Photo upload & media management                | ⏳ Upcoming |
 | 10    | Testing & Polish                               | ⏳ Upcoming |
@@ -345,3 +379,4 @@ npm run dev
 ## 📄 License
 
 ISC
+

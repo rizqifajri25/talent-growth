@@ -2,9 +2,15 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  bio: string | null;
   avatarUrl: string | null;
   createdAt: string;
   updatedAt?: string;
+}
+
+export interface UpdateProfilePayload {
+  name?: string;
+  bio?: string | null;
 }
 
 export interface AuthResponseData {
