@@ -27,11 +27,33 @@ export interface UpdatePostPayload {
   category?: string | null;
 }
 
+export interface PaginationMeta {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+export interface PostListParams {
+  q?: string;
+  category?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedPostsResult {
+  posts: Post[];
+  pagination: PaginationMeta;
+}
+
 export interface PostsApiResponse {
   success: boolean;
   message: string;
   data: {
     posts: Post[];
+    pagination?: PaginationMeta;
   };
 }
 
@@ -50,3 +72,4 @@ export interface DeletePostApiResponse {
     id: string;
   };
 }
+

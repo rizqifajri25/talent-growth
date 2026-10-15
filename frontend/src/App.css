@@ -3267,6 +3267,589 @@
   color: var(--color-text-dim);
 }
 
+/* ==========================================================================
+   Phase 8: Search Controls & Category Filter Bar
+   ========================================================================== */
+.archive-controls-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem 2rem;
+  margin-bottom: 3.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-shadow: var(--shadow-editorial);
+}
+
+.archive-search-box {
+  width: 100%;
+}
+
+.writers-search-container {
+  max-width: 680px;
+  margin: 0 auto 3.5rem;
+  width: 100%;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+
+.search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.search-icon {
+  position: absolute;
+  left: 1.25rem;
+  font-size: 0.95rem;
+  color: var(--color-text-dim);
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+}
+
+.porcelain-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  color: var(--color-text);
+  background: #FFFFFF;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-pill);
+  padding: 0.85rem 3rem 0.85rem 3.1rem;
+  transition: all var(--transition-fast);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.porcelain-search-input:focus {
+  border-color: var(--color-primary);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(10, 10, 10, 0.08);
+}
+
+.porcelain-search-input::placeholder {
+  color: var(--color-text-dim);
+}
+
+.search-clear-btn {
+  position: absolute;
+  right: 1.15rem;
+  background: transparent;
+  border: none;
+  font-size: 0.875rem;
+  color: var(--color-text-dim);
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color var(--transition-fast);
+}
+
+.search-clear-btn:hover {
+  color: var(--color-text);
+}
+
+.category-filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.category-filter-pill {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 0.4rem 1rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-subtle);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.category-filter-pill:hover {
+  border-color: #D4D0C7;
+  color: var(--color-text);
+  background: #FFFFFF;
+}
+
+.category-filter-pill.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   Phase 8: Aurora Reusable Pagination Component
+   ========================================================================== */
+.aurora-pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  padding: 2.5rem 0 1rem;
+  border-top: 1px solid var(--color-border);
+  margin-top: 4rem;
+  width: 100%;
+}
+
+.pagination-summary {
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+.pagination-count-highlight {
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.pagination-btn {
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 0.5rem 1.15rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  transition: all var(--transition-fast);
+}
+
+.pagination-btn:hover:not(:disabled) {
+  border-color: var(--color-accent-brass);
+  background: var(--color-surface-subtle);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  border-color: var(--color-border-subtle);
+}
+
+.pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.pagination-number-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid transparent;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.pagination-number-btn:hover:not(.active) {
+  background: var(--color-surface-subtle);
+  border-color: var(--color-border);
+}
+
+.pagination-number-btn.active {
+  background: var(--color-primary);
+  color: #FFFFFF;
+  font-weight: 600;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.pagination-ellipsis {
+  padding: 0 0.4rem;
+  color: var(--color-text-dim);
+  font-size: 0.875rem;
+}
+
+/* ==========================================================================
+   Phase 8: Markdown Editor (Write / Preview Tabs & Toolbar)
+   ========================================================================== */
+.aurora-markdown-editor {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.aurora-markdown-editor:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(10, 10, 10, 0.08);
+}
+
+.editor-tab-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.65rem 1rem;
+  background: var(--color-surface-subtle);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.editor-mode-tabs {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.editor-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.9rem;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.editor-tab-btn:hover {
+  color: var(--color-text);
+}
+
+.editor-tab-btn.active {
+  background: #FFFFFF;
+  border-color: var(--color-border);
+  color: var(--color-text);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.markdown-supported-badge {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent-brass);
+}
+
+.markdown-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.6rem 1rem;
+  background: #FFFFFF;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.toolbar-btn {
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-subtle);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.toolbar-btn:hover:not(:disabled) {
+  background: #E8E6DF;
+  border-color: #D4D0C7;
+}
+
+.toolbar-btn.bold-btn {
+  font-weight: 700;
+}
+
+.toolbar-btn.italic-btn {
+  font-style: italic;
+}
+
+.toolbar-btn.code-btn {
+  font-family: var(--font-mono);
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 18px;
+  background: var(--color-border);
+  margin: 0 0.3rem;
+}
+
+.aurora-markdown-editor .porcelain-textarea {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  min-height: 280px;
+  padding: 1.25rem 1.5rem;
+  font-family: var(--font-sans);
+  font-size: 0.9375rem;
+  line-height: 1.7;
+}
+
+.aurora-markdown-editor .porcelain-textarea:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.markdown-preview-pane {
+  padding: 2rem 2.25rem;
+  min-height: 280px;
+  background: #FFFFFF;
+  box-sizing: border-box;
+}
+
+.preview-empty-hint {
+  text-align: center;
+  padding: 3.5rem 1.5rem;
+  color: var(--color-text-dim);
+}
+
+.preview-empty-icon {
+  font-size: 2.25rem;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.preview-empty-text {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ==========================================================================
+   Phase 8: Aurora Safe Markdown Body Rendering
+   ========================================================================== */
+.aurora-markdown-body {
+  font-family: var(--font-sans);
+  font-size: 1.125rem;
+  line-height: 1.85;
+  color: var(--color-text);
+  word-break: break-word;
+}
+
+.aurora-markdown-body h1,
+.aurora-markdown-body h2,
+.aurora-markdown-body h3,
+.aurora-markdown-body h4,
+.aurora-markdown-body h5,
+.aurora-markdown-body h6 {
+  font-family: var(--font-serif);
+  font-weight: 400;
+  line-height: 1.25;
+  letter-spacing: -0.015em;
+  color: var(--color-text);
+}
+
+.aurora-markdown-body h1 {
+  font-size: 2.25rem;
+  margin: 2.5rem 0 1.25rem;
+}
+
+.aurora-markdown-body h2 {
+  font-size: 1.85rem;
+  margin: 2.25rem 0 1rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--color-border-subtle);
+}
+
+.aurora-markdown-body h3 {
+  font-size: 1.45rem;
+  margin: 1.85rem 0 0.85rem;
+}
+
+.aurora-markdown-body h4 {
+  font-size: 1.2rem;
+  margin: 1.5rem 0 0.75rem;
+}
+
+.aurora-markdown-body p {
+  margin: 0 0 1.5rem;
+}
+
+.aurora-markdown-body blockquote {
+  border-left: 3px solid var(--color-accent-brass);
+  padding: 1.1rem 1.75rem;
+  margin: 2rem 0;
+  background: rgba(194, 166, 118, 0.06);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-style: italic;
+  font-size: 1.125rem;
+  line-height: 1.75;
+  color: var(--color-text);
+}
+
+.aurora-markdown-body blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+.aurora-markdown-body ul,
+.aurora-markdown-body ol {
+  margin: 0 0 1.5rem 1.75rem;
+  padding: 0;
+}
+
+.aurora-markdown-body li {
+  margin-bottom: 0.5rem;
+  line-height: 1.75;
+}
+
+.aurora-markdown-body .markdown-inline-code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: rgba(10, 10, 10, 0.06);
+  padding: 0.2em 0.45em;
+  border-radius: 4px;
+  color: var(--color-primary);
+  border: 1px solid rgba(10, 10, 10, 0.08);
+}
+
+.aurora-markdown-body .markdown-code-block {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  background: #0A0A0A;
+  color: #EDEDEC;
+  padding: 1.5rem 1.75rem;
+  border-radius: var(--radius-md);
+  overflow-x: auto;
+  margin: 2rem 0;
+  border: 1px solid #262626;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.aurora-markdown-body .markdown-code-block code {
+  font-family: inherit;
+  color: inherit;
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+
+.markdown-table-wrapper {
+  overflow-x: auto;
+  margin: 2rem 0;
+}
+
+.aurora-markdown-body .markdown-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+  border: 1px solid var(--color-border);
+}
+
+.aurora-markdown-body .markdown-table th,
+.aurora-markdown-body .markdown-table td {
+  padding: 0.75rem 1.15rem;
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.aurora-markdown-body .markdown-table th {
+  background: var(--color-surface-subtle);
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.aurora-markdown-body .markdown-table tr:nth-child(even) {
+  background: rgba(245, 244, 240, 0.4);
+}
+
+.aurora-markdown-body hr {
+  border: none;
+  height: 1px;
+  background: var(--color-border);
+  margin: 3rem 0;
+}
+
+.aurora-markdown-body .markdown-link {
+  color: var(--color-primary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-weight: 500;
+  transition: color var(--transition-fast);
+}
+
+.aurora-markdown-body .markdown-link:hover {
+  color: var(--color-accent-brass);
+}
+
+.markdown-image-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface-subtle);
+  border: 1px dashed var(--color-border);
+  color: var(--color-text-dim);
+  margin: 0.5rem 0;
+}
+
+/* Responsive adjustments for Phase 8 */
+@media (max-width: 768px) {
+  .archive-controls-card {
+    padding: 1.25rem 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .aurora-pagination-container {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 1.25rem;
+    margin-top: 2.75rem;
+  }
+
+  .pagination-controls {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .markdown-preview-pane {
+    padding: 1.5rem 1.25rem;
+  }
+
+  .aurora-markdown-body {
+    font-size: 1.05rem;
+    line-height: 1.75;
+  }
+}
+
+
 
 
 

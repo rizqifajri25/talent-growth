@@ -16,8 +16,9 @@ Talent Growth Blog Platform is a web publication and blogging platform enabling 
 | Database    | PostgreSQL (Local `talent_growth_dev` / Supabase)            | ✅ Relational Schema         |
 | ORM         | Prisma ORM (v7.10.0 + `@prisma/adapter-pg` driver)          | ✅ Configured & Migrated     |
 | Auth        | JWT (HS256) + bcrypt (12 rounds) + Zod + In-Memory RAM Store | ✅ Tested & Verified         |
-| Testing     | Vitest, Supertest                                           | ✅ **87/87 Tests Passing**   |
+| Testing     | Vitest, Supertest                                           | ✅ **116/116 Tests Passing** (106 backend + 10 frontend) |
 | Linter      | Oxlint (Fast Rust-based linting, 0 warnings, 0 errors)       | ✅ Enforced                  |
+| Markdown    | react-markdown v10, remark-gfm v4, rehype-sanitize v6        | ✅ Safe Rendering & Sanitization |
 | HTTP Client | Axios (Centralized instance with Bearer interceptor)        | ✅ Implemented               |
 | Deployment  | Vercel (Frontend), Railway (Backend), Supabase (DB)         | ⏳ Planned (Phase 11)        |
 
@@ -160,21 +161,22 @@ talent-growth/
 
 ### 1. Author Directory & Public Profiles (`/api/v1/authors`)
 
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/authors` | **Public** | Retrieves all published authors (`postCount >= 1`), sorted alphabetically by name. |
-| `GET` | `/api/v1/authors/:id` | **Public** | Retrieves public author profile with author bio and published essays sorted newest first. |
+| Method | Endpoint | Access | Query Parameters | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/authors` | **Public** | `q`, `page` (default 1), `limit` (default 12, max 48) | Searches and paginates published authors (`postCount >= 1`) by name or bio (case-insensitive, trimmed). Sorted alphabetically. Sensitive fields (email, passwordHash, sessions) excluded. |
+| `GET` | `/api/v1/authors/:id` | **Public** | `postsPage` (default 1), `postsLimit` (default 6, max 24) | Retrieves public author profile with biography, total `postCount`, and paginated published essays sorted newest first. |
 
 #### Design Decision — Published Contributor Directory:
 - `GET /api/v1/authors` filters by `posts: { some: {} }`. Registered users without any published essays do not clutter the public contributor directory.
 - `GET /api/v1/authors/:id` remains accessible for any registered user ID, returning `postCount: 0` and an empty array (`posts: []`) with an Aurora empty state.
+- **Search & Pagination**: Parameter `q` searches both author `name` and `bio` (case-insensitive substring). Email is strictly excluded from search to prevent enumeration. Responses include pagination metadata (`page`, `limit`, `totalItems`, `totalPages`, `hasNextPage`, `hasPreviousPage`).
 
 #### Sensitive Data Security:
-- Author profiles strictly expose `{ id, name, bio, avatarUrl, joinedAt, postCount, posts }`.
+- Author profiles strictly expose `{ id, name, bio, avatarUrl, joinedAt, postCount, posts, postsPagination }`.
 - User emails, password hashes, and session data are **never exposed** in directory or public profile responses.
 
 ```json
-// Example GET /api/v1/authors Response
+// Example GET /api/v1/authors?q=engineer&page=1&limit=12 Response
 {
   "success": true,
   "message": "Authors retrieved successfully",
@@ -188,7 +190,15 @@ talent-growth/
         "joinedAt": "2026-10-14T22:44:49.236Z",
         "postCount": 3
       }
-    ]
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 12,
+      "totalItems": 1,
+      "totalPages": 1,
+      "hasNextPage": false,
+      "hasPreviousPage": false
+    }
   }
 }
 ```
@@ -214,19 +224,80 @@ talent-growth/
 
 ---
 
-### 3. Blog Post CRUD Endpoints (`/api/v1/posts`)
+### 3. Blog Post CRUD, Search & Pagination Endpoints (`/api/v1/posts`)
 
-| Method | Endpoint | Access | Description |
-| :--- | :--- | :--- | :--- |
-| `GET` | `/api/v1/posts` | **Public** | Retrieves all posts sorted newest first (`createdAt: 'desc'`) with safe author info. |
-| `GET` | `/api/v1/posts/:id` | **Public** | Retrieves full post details by UUID. Returns 404 if not found, 400 if invalid UUID. |
-| `POST` | `/api/v1/posts` | **Protected** | Creates new post. `authorId` is strictly assigned from verified JWT token context. |
-| `PUT` | `/api/v1/posts/:id` | **Protected** | Updates post. Enforces ownership: returns 403 Forbidden if current user is not author. |
-| `DELETE` | `/api/v1/posts/:id` | **Protected** | Deletes post. Enforces ownership: returns 403 Forbidden if current user is not author. |
+| Method | Endpoint | Access | Query Parameters | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/posts` | **Public** | `q`, `category`, `page` (default 1), `limit` (default 9, max 50) | Retrieves paginated posts sorted newest first (`createdAt: 'desc', id: 'desc'`) with safe author info. Supports full-text title and content search combined with category filter. |
+| `GET` | `/api/v1/posts/:id` | **Public** | None | Retrieves full post details by UUID. Returns 404 if not found, 400 if invalid UUID. |
+| `POST` | `/api/v1/posts` | **Protected** | None | Creates new post. `authorId` is strictly assigned from verified JWT token context. Content supports Markdown. |
+| `PUT` | `/api/v1/posts/:id` | **Protected** | None | Updates post. Enforces ownership: returns 403 Forbidden if current user is not author. |
+| `DELETE` | `/api/v1/posts/:id` | **Protected** | None | Deletes post. Enforces ownership: returns 403 Forbidden if current user is not author. |
+
+#### Search & Pagination Architecture:
+- **Search Parameter (`q`)**: Case-insensitive substring search matching both `title` and `content` columns. Whitespace is automatically trimmed. Max length: 100 characters (exceeding length returns HTTP 400).
+- **Category Filter (`category`)**: Exact category matching. Works seamlessly in conjunction with `q` search.
+- **Deterministic Ordering**: `createdAt DESC, id DESC` tie-breaker ensures stable pagination without page drift.
+- **Pagination Envelope**: Every list response includes `{ posts: [...], pagination: { page, limit, totalItems, totalPages, hasNextPage, hasPreviousPage } }`.
+- **Out of Range Handling**: Requesting a page beyond `totalPages` returns an empty array `posts: []` with accurate metadata, enabling clean empty states.
+
+```json
+// Example GET /api/v1/posts?q=system&category=Architecture&page=1&limit=9 Response
+{
+  "success": true,
+  "message": "Posts retrieved successfully",
+  "data": {
+    "posts": [
+      {
+        "id": "3c8466e3-5494-4366-9df9-bb225881a7fc",
+        "title": "Scalable Microservice Architecture",
+        "excerpt": "A deep dive into distributed event streaming...",
+        "content": "## Core Tenets\n\nEvent streaming provides decoupled consistency...",
+        "category": "Architecture",
+        "createdAt": "2026-10-15T01:30:00.000Z",
+        "updatedAt": "2026-10-15T01:30:00.000Z",
+        "author": {
+          "id": "8e98a9a1-c121-4300-bb26-6ce0f0f564e9",
+          "name": "beliau",
+          "avatarUrl": null
+        }
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 9,
+      "totalItems": 1,
+      "totalPages": 1,
+      "hasNextPage": false,
+      "hasPreviousPage": false
+    }
+  }
+}
+```
 
 ---
 
-### 4. Nested Comments Endpoints (`/api/v1/posts/:id/comments` & `/api/v1/comments/:id`)
+### 4. Markdown Authoring & Safe Content Rendering
+
+Talent Growth Phase 8 introduces native Markdown authoring with real-time preview and safe rendering.
+
+#### Features:
+- **Write / Preview Tabs**: Toggle between raw Markdown source authoring and sanitized editorial preview.
+- **Lightweight Formatting Toolbar**: One-click insertions for Heading 2 (`## `), Heading 3 (`### `), Bold (`**text**`), Italic (`*text*`), Blockquote (`> `), Unordered List (`- `), Ordered List (`1. `), Inline Code (`` `code` ``), Code Block (```` ```\ncode\n``` ````), and GFM Table.
+- **Cursor-Aware Syntax Insertion**: Toolbar actions preserve existing text, wrap selected text, or place cursor inside syntax boundaries.
+- **Live Character Counter**: Tracks character usage against the 50,000-character backend limit.
+- **Zero Database Schema Changes**: Markdown source is stored directly as plain text in `Post.content`. Existing plain-text articles render seamlessly.
+
+#### Security Model & XSS Mitigation:
+1. **No Raw HTML Execution**: Arbitrary HTML tags (e.g., `<script>`, `<iframe onload=...>`, `<img onerror=...>`) are completely neutralized via `rehype-sanitize`.
+2. **No `dangerouslySetInnerHTML`**: All rendering uses React virtual DOM node trees created by `react-markdown`.
+3. **Dangerous Protocol Neutralization**: Links with `javascript:`, `vbscript:`, or `data:` URLs are sanitized and disarmed.
+4. **Safe External Navigation**: All rendered hyperlinks automatically include `target="_blank"` and `rel="noopener noreferrer"`.
+5. **No Untrusted Remote Tracking Images**: Remote Markdown images are transformed into an Aurora badge placeholder (`[Image: alt]`), preventing arbitrary cross-site network tracking until Phase 9 introduces verified media uploads.
+
+---
+
+### 5. Nested Comments Endpoints (`/api/v1/posts/:id/comments` & `/api/v1/comments/:id`)
 
 | Method | Endpoint | Access | Description |
 | :--- | :--- | :--- | :--- |
@@ -263,20 +334,27 @@ talent-growth/
 
 ## 🧪 Testing & Verification
 
-### Full Test Suite (87 Passing Tests)
-Run all unit and integration tests across backend authentication, blog post CRUD, comments, and author directory/profiles:
+### Full Automated Test Suite (116 Passing Tests)
+Run all unit, integration, and security tests across backend (106 tests) and frontend (10 tests):
 
 ```bash
+# Backend test suite (106 passing tests across 6 suites)
 cd backend
+npm test
+
+# Frontend test suite (10 passing tests via Vitest & jsdom)
+cd frontend
 npm test
 ```
 
 Test coverage includes:
+- `search.pagination.test.ts` (19 tests): Article search by title, article search by content, case-insensitive normalization, whitespace trimming, combined search and category filtering, deterministic sorting (`createdAt DESC, id DESC`), pagination defaults (`page=1, limit=9`), pagination boundaries and rejection of invalid/negative/decimal/exceeding limits, empty state pagination consistency, author directory search by name/bio with email isolation, author directory pagination, and public author profile essay pagination (`postsPage`, `postsLimit`) with total `postCount` preservation.
 - `authors.api.test.ts` (22 tests): Public directory access, contributor postCount filtering, name sorting, bio display, email/passwordHash privacy protection, public profile by ID, newest-first essay ordering, 0-post user empty state, invalid UUID (400), user not found (404), profile update (`PATCH /api/v1/auth/me`), name validation (1-80 chars), bio length (500 chars), whitespace normalization to `null`, rejection of empty update body, forbidden field protection (`email`, `id`, `avatarUrl`), 401 unauthenticated check, revoked session rejection, database persistence, and isolated test cleanup.
 - `comments.api.test.ts` (22 tests): Threaded comments tree, parentId validation, cross-post rejection, leaf hard-delete, parent soft-delete.
 - `posts.api.test.ts` (17 tests): Public reads, safe author filtering, creation with token identity, ownership enforcement for edit/delete, 403 for unauthorized users, 404 for missing records.
 - `auth.api.test.ts` (16 tests): Registration, login, duplicate email rejection, session revocation, live db check.
 - `auth.validators.test.ts` (10 tests): UTF-8 72-byte passwords, email normalization, required fields.
+- `markdown.security.test.tsx` (10 frontend tests): Sanitization of `<script>` tags, stripping of dangerous inline event handlers (`onload`, `onerror`), disarming malicious URL schemes (`javascript:`), secure external link handling (`target="_blank"` with `rel="noopener noreferrer"`), remote image neutralization with pill badge indicator, rendering standard Markdown (headings, bold, italic, blockquote, lists, inline code, code blocks, and GFM tables), and safe plain-text backward compatibility.
 
 ### Frontend Quality & Typecheck
 Verify strict TypeScript compilation and linting:
@@ -284,7 +362,7 @@ Verify strict TypeScript compilation and linting:
 ```bash
 cd frontend
 
-# Oxlint (0 warnings, 0 errors on 33 files)
+# Oxlint (0 warnings, 0 errors)
 npm run lint
 
 # Compile and build Vite production bundle
@@ -335,7 +413,7 @@ npm run dev
 
 ---
 
-## ✅ Current Status (Phase 7 Completed)
+## ✅ Current Status (Phase 8 Completed)
 
 - [x] **Phase 1**: Full-stack scaffolding (React 19 + Express + TypeScript)
 - [x] **Phase 2**: PostgreSQL schema, Prisma ORM v7, database health checks
@@ -343,36 +421,36 @@ npm run dev
 - [x] **Phase 4**: Frontend authentication integration, in-memory tokens, protected routes, Aurora visual system
 - [x] **Phase 5**: Full-Stack Blog Post CRUD & Aurora Editorial Experience (17 tests)
 - [x] **Phase 6**: Nested Comments System, Replies, Ownership Authorization & Aurora UI (22 tests)
-- [x] **Phase 7**: Author Directory, Public Author Profiles & Profile Management:
-  - [x] Extended `User` model with optional `bio: String? @db.VarChar(500)` via Prisma migration `20261015011234_add_user_bio`. Existing user data preserved with `bio = null`.
-  - [x] Public endpoint `GET /api/v1/authors`: Contributor directory displaying published authors with postCount, bio, join date, sorted alphabetically. Sensitive fields (email, passwordHash, sessions) strictly excluded.
-  - [x] Public endpoint `GET /api/v1/authors/:id`: Public author profile with biography, metrics, and published essays ordered newest first.
-  - [x] Protected endpoint `PATCH /api/v1/auth/me`: Allows authenticated user to update display name and bio (max 500 chars, empty normalized to `null`). Disallowed fields (`id`, `email`, etc.) safely blocked.
-  - [x] 22 new Vitest integration tests (total **87/87 passing tests**) with isolated test cleanup.
-  - [x] Frontend `authorsApi` service integrated into centralized `apiClient`.
-  - [x] Aurora Writers Directory page (`/writers`) with responsive grid, contributor cards, and empty state.
-  - [x] Aurora Public Author Profile page (`/writers/:id`) with author hero card, metrics, and published essays list.
-  - [x] Aurora Profile Management in `/profile`: Edit Name, live Bio character counter (`X / 500`), read-only email, Save/Cancel, and Auth Context synchronization without re-login.
-  - [x] Activated `Writers` NavLink in Navbar (desktop & mobile drawer).
-  - [x] Zero browser inspection rule respected; frontend build and oxlint 100% clean.
+- [x] **Phase 7**: Author Directory, Public Author Profiles & Profile Management (22 tests)
+- [x] **Phase 8**: Search, Pagination, Markdown Editor & Safe Content Rendering:
+  - [x] Full-stack article search by title & content (case-insensitive, trimmed, combining with category filter, deterministic `createdAt DESC, id DESC`).
+  - [x] Article pagination on `/essays` with Aurora pagination controls, metadata counters, and out-of-range empty states.
+  - [x] Author directory search (`q` matching name/bio, excluding email) and pagination on `/writers`.
+  - [x] Public author profile article pagination (`postsPage`, `postsLimit`) on `/writers/:id` while preserving total `postCount`.
+  - [x] Markdown editor with Write and Preview modes, character counter, and cursor-aware formatting toolbar on New Post (`/essays/new`) and Edit Post (`/essays/:id/edit`).
+  - [x] Safe Markdown rendering on Post Detail (`/essays/:id`) and editor preview via `react-markdown`, `remark-gfm`, and `rehype-sanitize`.
+  - [x] Strict XSS mitigation (no raw HTML, neutralization of `<script>` / event handlers, disarming of `javascript:` URLs, safe external links, and remote image badges).
+  - [x] Bidirectional URL query synchronization (`/essays?q=...&category=...&page=...`, `/writers?q=...&page=...`, `/writers/:id?postsPage=...`).
+  - [x] 19 new backend integration tests + 10 frontend security/rendering tests (**116/116 total passing automated tests**).
+  - [x] Aurora design system visual continuity with 0 browser inspection rules respected.
 
 ---
 
 ## 🗺️ Roadmap
 
-| Phase | Description                                    | Status      |
-| ----- | ---------------------------------------------- | ----------- |
-| 1     | Project initialization & scaffolding           | ✅ Done     |
-| 2     | Database setup (PostgreSQL + Prisma)           | ✅ Done     |
-| 3     | Authentication (JWT, bcrypt, session tracking) | ✅ Done     |
-| 4     | Frontend Auth Integration (In-Memory RAM)      | ✅ Done     |
-| 5     | Blog post CRUD & Aurora Editorial Experience   | ✅ Done     |
-| 6     | Nested Comments System & Threaded Conversation | ✅ Done     |
+| Phase | Description                                     | Status      |
+| ----- | ----------------------------------------------- | ----------- |
+| 1     | Project initialization & scaffolding            | ✅ Done     |
+| 2     | Database setup (PostgreSQL + Prisma)            | ✅ Done     |
+| 3     | Authentication (JWT, bcrypt, session tracking)  | ✅ Done     |
+| 4     | Frontend Auth Integration (In-Memory RAM)       | ✅ Done     |
+| 5     | Blog post CRUD & Aurora Editorial Experience    | ✅ Done     |
+| 6     | Nested Comments System & Threaded Conversation  | ✅ Done     |
 | 7     | Author Directory, Public Profiles & Profile Mgmt| ✅ Done     |
-| 8     | Search, pagination, markdown                   | ⏳ Upcoming |
-| 9     | Photo upload & media management                | ⏳ Upcoming |
-| 10    | Testing & Polish                               | ⏳ Upcoming |
-| 11    | Deployment (Vercel, Railway, Supabase)         | ⏳ Upcoming |
+| 8     | Search, pagination, markdown & safe rendering   | ✅ Done     |
+| 9     | Photo upload & media management                 | ⏳ Upcoming |
+| 10    | Testing & Polish                                | ⏳ Upcoming |
+| 11    | Deployment (Vercel, Railway, Supabase)          | ⏳ Upcoming |
 
 ---
 

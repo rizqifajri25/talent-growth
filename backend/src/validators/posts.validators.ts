@@ -76,6 +76,88 @@ export const updatePostSchema = z.object({
 export type UpdatePostInput = z.infer<typeof updatePostSchema>;
 
 /**
+ * Standard pagination metadata contract across Talent Growth API.
+ */
+export interface PaginationMetadata {
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+}
+
+/**
+ * Calculates standard pagination metadata deterministically.
+ */
+export function buildPaginationMetadata(
+  totalItems: number,
+  page: number,
+  limit: number
+): PaginationMetadata {
+  const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / limit);
+  return {
+    page,
+    limit,
+    totalItems,
+    totalPages,
+    hasNextPage: page < totalPages,
+    hasPreviousPage: page > 1 && totalPages > 0,
+  };
+}
+
+/**
+ * Query schema for GET /api/v1/posts (search, category filter, pagination).
+ */
+export const postsQuerySchema = z.object({
+  q: z
+    .string()
+    .trim()
+    .max(100, 'Search query must not exceed 100 characters')
+    .optional()
+    .transform((val) => (val && val.length > 0 ? val : undefined)),
+  category: z
+    .string()
+    .trim()
+    .max(100, 'Category must not exceed 100 characters')
+    .optional()
+    .transform((val) => (val && val.length > 0 ? val : undefined)),
+  page: z
+    .preprocess(
+      (val) => {
+        if (val === undefined || val === null || val === '') return undefined;
+        if (typeof val === 'number') return String(val);
+        if (typeof val === 'string') return val.trim();
+        return val;
+      },
+      z
+        .string()
+        .regex(/^[1-9]\d*$/, 'Page must be a positive integer greater than or equal to 1')
+        .transform((val) => parseInt(val, 10))
+    )
+    .optional()
+    .default(1),
+  limit: z
+    .preprocess(
+      (val) => {
+        if (val === undefined || val === null || val === '') return undefined;
+        if (typeof val === 'number') return String(val);
+        if (typeof val === 'string') return val.trim();
+        return val;
+      },
+      z
+        .string()
+        .regex(/^[1-9]\d*$/, 'Limit must be a positive integer')
+        .transform((val) => parseInt(val, 10))
+        .refine((val) => val >= 1 && val <= 50, 'Limit must be between 1 and 50')
+    )
+    .optional()
+    .default(9),
+});
+
+export type PostsQueryInput = z.infer<typeof postsQuerySchema>;
+
+/**
  * Formats Zod errors into uniform API error response items.
  */
 export function formatZodErrors(error: z.ZodError): ValidationErrorItem[] {
@@ -84,3 +166,4 @@ export function formatZodErrors(error: z.ZodError): ValidationErrorItem[] {
     message: issue.message,
   }));
 }
+

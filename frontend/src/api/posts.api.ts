@@ -3,6 +3,9 @@ import type {
   Post,
   CreatePostPayload,
   UpdatePostPayload,
+  PostListParams,
+  PaginatedPostsResult,
+  PaginationMeta,
   PostsApiResponse,
   PostApiResponse,
   DeletePostApiResponse,
@@ -10,12 +13,25 @@ import type {
 
 export const postsApi = {
   /**
-   * Retrieves all posts ordered by creation date descending.
+   * Retrieves paginated posts with optional search term (q) and category filter.
    * Public endpoint.
    */
-  async getPosts(): Promise<Post[]> {
-    const response = await apiClient.get<PostsApiResponse>('/posts');
-    return response.data.data.posts;
+  async getPosts(params?: PostListParams): Promise<PaginatedPostsResult> {
+    const response = await apiClient.get<PostsApiResponse>('/posts', { params });
+    const posts = response.data.data.posts || [];
+    const defaultPagination: PaginationMeta = {
+      page: params?.page || 1,
+      limit: params?.limit || 9,
+      totalItems: posts.length,
+      totalPages: posts.length > 0 ? 1 : 0,
+      hasNextPage: false,
+      hasPreviousPage: false,
+    };
+
+    return {
+      posts,
+      pagination: response.data.data.pagination || defaultPagination,
+    };
   },
 
   /**

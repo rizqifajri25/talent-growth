@@ -12,15 +12,18 @@ export const HomePage: React.FC = () => {
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);
   const [postsError, setPostsError] = useState<string | null>(null);
 
+  const [totalPostsCount, setTotalPostsCount] = useState<number>(0);
+
   useEffect(() => {
     let isMounted = true;
     const fetchRecentPosts = async () => {
       setIsLoadingPosts(true);
       setPostsError(null);
       try {
-        const data = await postsApi.getPosts();
+        const data = await postsApi.getPosts({ limit: 6 });
         if (isMounted) {
-          setPosts(data);
+          setPosts(data.posts);
+          setTotalPostsCount(data.pagination.totalItems);
         }
       } catch (err) {
         if (isMounted) {
@@ -176,10 +179,10 @@ export const HomePage: React.FC = () => {
               ))}
             </div>
 
-            {posts.length > 6 && (
+            {totalPostsCount > 6 && (
               <div className="view-more-container">
                 <Link to="/essays" className="btn-outline-pill large">
-                  View All {posts.length} Essays in Archive ↗
+                  View All {totalPostsCount} Essays in Archive ↗
                 </Link>
               </div>
             )}

@@ -5,6 +5,7 @@ import { extractApiError } from '../api/client';
 import { useAuth } from '../context/useAuth';
 import { DeleteConfirmModal } from '../components/posts/DeleteConfirmModal';
 import { CommentSection } from '../components/comments/CommentSection';
+import { MarkdownRenderer } from '../components/markdown/MarkdownRenderer';
 import type { Post } from '../types/posts.types';
 
 export const PostDetailPage: React.FC = () => {
@@ -229,9 +230,9 @@ export const PostDetailPage: React.FC = () => {
         </div>
       </header>
 
-      {/* Article Body - Plain text rendered safely with preserved paragraph breaks */}
+      {/* Article Body - Rendered safely using Aurora MarkdownRenderer */}
       <div className="article-body">
-        {post.content}
+        <MarkdownRenderer content={post.content} />
       </div>
 
       {/* Article Footer */}

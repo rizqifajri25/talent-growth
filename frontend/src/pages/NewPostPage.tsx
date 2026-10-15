@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { postsApi } from '../api/posts.api';
 import { extractApiError } from '../api/client';
+import { MarkdownEditor } from '../components/markdown/MarkdownEditor';
 
 export const NewPostPage: React.FC = () => {
   const navigate = useNavigate();
@@ -157,22 +158,18 @@ export const NewPostPage: React.FC = () => {
               </label>
               <span className="char-count">{content.length}/50,000</span>
             </div>
-            <textarea
+            <MarkdownEditor
               id="post-content"
-              className={`porcelain-textarea ${fieldErrors.content ? 'input-error' : ''}`}
-              placeholder="Write your perspective here. Paragraphs and formatting are preserved cleanly..."
-              rows={14}
               value={content}
-              onChange={(e) => {
-                setContent(e.target.value);
+              onChange={(newVal) => {
+                setContent(newVal);
                 if (fieldErrors.content) {
                   setFieldErrors((prev) => ({ ...prev, content: '' }));
                 }
               }}
-              maxLength={50000}
               disabled={isSubmitting}
-              aria-invalid={Boolean(fieldErrors.content)}
-              aria-describedby={fieldErrors.content ? 'content-error' : undefined}
+              hasError={Boolean(fieldErrors.content)}
+              ariaDescribedBy={fieldErrors.content ? 'content-error' : undefined}
             />
             {fieldErrors.content && (
               <span id="content-error" className="field-error-message" role="alert">

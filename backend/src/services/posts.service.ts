@@ -1,5 +1,10 @@
 import { prisma } from '../config/prisma';
-import type { CreatePostInput, UpdatePostInput } from '../validators/posts.validators';
+import type {
+  CreatePostInput,
+  UpdatePostInput,
+  PostsQueryInput,
+} from '../validators/posts.validators';
+import { buildPaginationMetadata } from '../validators/posts.validators';
 
 export class PostNotFoundError extends Error {
   constructor(message = 'Post not found.') {
@@ -36,14 +41,62 @@ export const safePostSelect = {
 
 export class PostsService {
   /**
+   * Retrieves paginated posts with optional case-insensitive search (q) and category filter.
+   * Deterministically ordered by createdAt DESC, id DESC.
+   */
+  static async getPosts(query: Partial<PostsQueryInput> = {}) {
+    const { q, category, page = 1, limit = 9 } = query;
+    const whereConditions: any[] = [];
+
+    if (q) {
+      whereConditions.push({
+        OR: [
+          { title: { contains: q, mode: 'insensitive' } },
+          { content: { contains: q, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    if (category) {
+      whereConditions.push({
+        category: { equals: category, mode: 'insensitive' },
+      });
+    }
+
+    const where = whereConditions.length > 0 ? { AND: whereConditions } : {};
+
+    const [totalItems, posts] = await Promise.all([
+      prisma.post.count({ where }),
+      prisma.post.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+        orderBy: [
+          { createdAt: 'desc' },
+          { id: 'desc' },
+        ],
+        select: safePostSelect,
+      }),
+    ]);
+
+    const pagination = buildPaginationMetadata(totalItems, page, limit);
+
+    return {
+      posts,
+      pagination,
+    };
+  }
+
+  /**
    * Retrieves all posts ordered by creation date descending (latest first).
-   * Safe author details included.
+   * Safe author details included. Legacy alias for getPosts().
    */
   static async getAllPosts() {
     return prisma.post.findMany({
-      orderBy: {
-        createdAt: 'desc',
-      },
+      orderBy: [
+        { createdAt: 'desc' },
+        { id: 'desc' },
+      ],
       select: safePostSelect,
     });
   }

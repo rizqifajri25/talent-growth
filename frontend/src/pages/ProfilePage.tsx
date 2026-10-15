@@ -54,9 +54,9 @@ export const ProfilePage: React.FC = () => {
 
         // Fetch posts for author
         try {
-          const allPosts = await postsApi.getPosts();
+          const result = await postsApi.getPosts({ limit: 50 });
           if (isMounted) {
-            setUserPosts(allPosts.filter((p) => p.authorId === currentUser.id));
+            setUserPosts(result.posts.filter((p) => p.authorId === currentUser.id));
           }
         } catch (postErr) {
           if (isMounted) {

@@ -1,11 +1,16 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { authorsApi } from '../api/authors.api';
 import { extractApiError } from '../api/client';
+import { Pagination } from '../components/common/Pagination';
 import type { PublicAuthorProfile } from '../types/authors.types';
 
 export const PublicAuthorPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Read postsPage from URL parameter (default 1)
+  const postsPage = Math.max(1, parseInt(searchParams.get('postsPage') || '1', 10) || 1);
 
   const [author, setAuthor] = useState<PublicAuthorProfile | null>(null);
   const [isLoading, setIsLoading] = useState(Boolean(id));
@@ -24,8 +29,12 @@ export const PublicAuthorPage: React.FC = () => {
 
     let isMounted = true;
     const loadAuthor = async () => {
+      setIsLoading(true);
       try {
-        const data = await authorsApi.getAuthorById(id);
+        const data = await authorsApi.getAuthorById(id, {
+          postsPage,
+          postsLimit: 6,
+        });
         if (!isMounted) return;
         setAuthor(data);
         setIsNotFound(false);
@@ -48,7 +57,17 @@ export const PublicAuthorPage: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [id, refreshIndex]);
+  }, [id, postsPage, refreshIndex]);
+
+  const handlePageChange = (newPage: number) => {
+    const nextParams = new URLSearchParams(searchParams);
+    if (newPage > 1) {
+      nextParams.set('postsPage', String(newPage));
+    } else {
+      nextParams.delete('postsPage');
+    }
+    setSearchParams(nextParams);
+  };
 
   const getInitials = (name?: string): string => {
     if (!name) return 'U';
@@ -72,7 +91,7 @@ export const PublicAuthorPage: React.FC = () => {
     }
   };
 
-  if (isLoading) {
+  if (isLoading && !author) {
     return (
       <div className="author-page-container">
         <div className="article-loading-state" aria-live="polite">
@@ -184,7 +203,7 @@ export const PublicAuthorPage: React.FC = () => {
           <h2 id="author-essays-heading" className="author-section-title">
             Published Essays
           </h2>
-          <span className="author-essays-count">{author.posts.length}</span>
+          <span className="author-essays-count">{author.postCount}</span>
         </div>
 
         {author.posts.length === 0 ? (
@@ -195,41 +214,52 @@ export const PublicAuthorPage: React.FC = () => {
             </p>
           </div>
         ) : (
-          <div className="author-essays-grid">
-            {author.posts.map((post) => (
-              <article key={post.id} className="author-essay-card">
-                <div className="author-essay-top">
-                  {post.category && (
-                    <span className="post-category-badge">{post.category}</span>
-                  )}
-                  <time className="author-essay-date" dateTime={post.createdAt}>
-                    {formatDate(post.createdAt)}
-                  </time>
-                </div>
+          <>
+            <div className="author-essays-grid">
+              {author.posts.map((post) => (
+                <article key={post.id} className="author-essay-card">
+                  <div className="author-essay-top">
+                    {post.category && (
+                      <span className="post-category-badge">{post.category}</span>
+                    )}
+                    <time className="author-essay-date" dateTime={post.createdAt}>
+                      {formatDate(post.createdAt)}
+                    </time>
+                  </div>
 
-                <h3 className="author-essay-title">
-                  <Link to={`/essays/${post.id}`}>{post.title}</Link>
-                </h3>
+                  <h3 className="author-essay-title">
+                    <Link to={`/essays/${post.id}`}>{post.title}</Link>
+                  </h3>
 
-                <p className="author-essay-excerpt">
-                  {post.content.length > 180
-                    ? `${post.content.substring(0, 180)}...`
-                    : post.content}
-                </p>
+                  <p className="author-essay-excerpt">
+                    {post.content.length > 180
+                      ? `${post.content.substring(0, 180)}...`
+                      : post.content}
+                  </p>
 
-                <div className="author-essay-footer">
-                  <Link
-                    to={`/essays/${post.id}`}
-                    className="author-essay-link"
-                    aria-label={`Read essay: ${post.title}`}
-                  >
-                    <span>Read Essay</span>
-                    <span aria-hidden="true">↗</span>
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
+                  <div className="author-essay-footer">
+                    <Link
+                      to={`/essays/${post.id}`}
+                      className="author-essay-link"
+                      aria-label={`Read essay: ${post.title}`}
+                    >
+                      <span>Read Essay</span>
+                      <span aria-hidden="true">↗</span>
+                    </Link>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            {/* Pagination for author essays */}
+            {author.pagination && (
+              <Pagination
+                pagination={author.pagination}
+                onPageChange={handlePageChange}
+                itemName="essays"
+              />
+            )}
+          </>
         )}
       </section>
     </div>

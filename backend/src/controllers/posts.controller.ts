@@ -3,6 +3,7 @@ import {
   postIdParamSchema,
   createPostSchema,
   updatePostSchema,
+  postsQuerySchema,
   formatZodErrors,
 } from '../validators/posts.validators';
 import {
@@ -17,16 +18,27 @@ import {
 export class PostsController {
   /**
    * GET /api/v1/posts
-   * Public: Retrieves list of all blog posts sorted newest first.
+   * Public: Retrieves paginated list of blog posts with search (q) and category filter.
    */
-  static async getAll(_req: Request, res: Response): Promise<void> {
+  static async getAll(req: Request, res: Response): Promise<void> {
     try {
-      const posts = await PostsService.getAllPosts();
+      const queryResult = postsQuerySchema.safeParse(req.query);
+      if (!queryResult.success) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid query parameters.',
+          errors: formatZodErrors(queryResult.error),
+        });
+        return;
+      }
+
+      const { posts, pagination } = await PostsService.getPosts(queryResult.data);
       res.status(200).json({
         success: true,
         message: 'Posts retrieved successfully',
         data: {
           posts,
+          pagination,
         },
       });
     } catch (error) {

@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import {
   authorIdParamSchema,
+  authorsQuerySchema,
+  authorProfileQuerySchema,
   formatZodErrors,
 } from '../validators/profile.validators';
 import {
@@ -11,17 +13,30 @@ import {
 export class AuthorsController {
   /**
    * GET /api/v1/authors
-   * Public: Retrieves directory of published authors (authors with >= 1 post).
+   * Public: Retrieves paginated directory of published authors with optional search (q).
    */
-  static async getAllAuthors(_req: Request, res: Response): Promise<void> {
+  static async getAllAuthors(req: Request, res: Response): Promise<void> {
     try {
-      const authors = await AuthorsService.getAuthorsDirectory();
+      const queryResult = authorsQuerySchema.safeParse(req.query);
+      if (!queryResult.success) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid query parameters.',
+          errors: formatZodErrors(queryResult.error),
+        });
+        return;
+      }
+
+      const { authors, pagination } = await AuthorsService.getAuthorsDirectory(
+        queryResult.data
+      );
 
       res.status(200).json({
         success: true,
         message: 'Authors retrieved successfully',
         data: {
           authors,
+          pagination,
         },
       });
     } catch (error) {
@@ -35,7 +50,7 @@ export class AuthorsController {
 
   /**
    * GET /api/v1/authors/:id
-   * Public: Retrieves public author profile with their published posts.
+   * Public: Retrieves public author profile with paginated published posts.
    */
   static async getAuthorById(req: Request, res: Response): Promise<void> {
     try {
@@ -49,7 +64,20 @@ export class AuthorsController {
         return;
       }
 
-      const author = await AuthorsService.getAuthorProfile(paramResult.data.id);
+      const queryResult = authorProfileQuerySchema.safeParse(req.query);
+      if (!queryResult.success) {
+        res.status(400).json({
+          success: false,
+          message: 'Invalid query parameters.',
+          errors: formatZodErrors(queryResult.error),
+        });
+        return;
+      }
+
+      const author = await AuthorsService.getAuthorProfile(
+        paramResult.data.id,
+        queryResult.data
+      );
 
       res.status(200).json({
         success: true,
@@ -75,3 +103,4 @@ export class AuthorsController {
     }
   }
 }
+

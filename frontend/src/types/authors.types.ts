@@ -1,3 +1,5 @@
+import type { PaginationMeta } from './posts.types';
+
 export interface AuthorSummary {
   id: string;
   name: string;
@@ -24,6 +26,23 @@ export interface PublicAuthorProfile {
   joinedAt: string;
   postCount: number;
   posts: AuthorPost[];
+  pagination?: PaginationMeta;
+}
+
+export interface AuthorListParams {
+  q?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface AuthorPostsParams {
+  postsPage?: number;
+  postsLimit?: number;
+}
+
+export interface PaginatedAuthorsResult {
+  authors: AuthorSummary[];
+  pagination: PaginationMeta;
 }
 
 export interface AuthorsApiResponse {
@@ -31,6 +50,7 @@ export interface AuthorsApiResponse {
   message: string;
   data: {
     authors: AuthorSummary[];
+    pagination?: PaginationMeta;
   };
 }
 
@@ -41,3 +61,4 @@ export interface AuthorApiResponse {
     author: PublicAuthorProfile;
   };
 }
+
