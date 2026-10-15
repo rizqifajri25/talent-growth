@@ -25,9 +25,6 @@ const BASE_URL =
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
   timeout: 15000,
 });
 
@@ -38,6 +35,13 @@ apiClient.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
+    // Crucial for multipart uploads: if data is FormData, remove Content-Type
+    // so browser/Axios automatically sets 'multipart/form-data; boundary=...'
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
     return config;
   },
   (error) => Promise.reject(error)

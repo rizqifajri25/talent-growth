@@ -51,6 +51,9 @@ export class SupabaseStorageService implements IMediaStorageService {
 
   isConfigured(): boolean {
     this.config = getStorageConfig();
+    if (!this.client && this.config.isConfigured) {
+      this.initClient();
+    }
     return Boolean(this.config.isConfigured && this.client);
   }
 
@@ -59,6 +62,9 @@ export class SupabaseStorageService implements IMediaStorageService {
    * Returns the canonical public URL.
    */
   async upload(bucket: string, path: string, buffer: Buffer, contentType: string): Promise<string> {
+    if (!this.client && this.config.isConfigured) {
+      this.initClient();
+    }
     if (!this.isConfigured() || !this.client) {
       throw new StorageNotConfiguredError();
     }
