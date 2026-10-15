@@ -1,5 +1,9 @@
 # Talent Growth Blog Platform
 
+> **🚀 Live Production Website**: [https://talent-growth-one.vercel.app/](https://talent-growth-one.vercel.app/)  
+> **📡 Production Backend API**: [https://talent-growth.onrender.com](https://talent-growth.onrender.com)  
+> **🗄️ Cloud Infrastructure**: Vercel (Frontend) + Render (Backend) + Supabase (PostgreSQL & Media Storage)
+
 A full-stack editorial blog platform for sharing knowledge and growing together, built with modern web technologies and the **Aurora** editorial design system.
 
 ## 🎯 Purpose
@@ -10,10 +14,10 @@ Talent Growth Blog Platform is a web publication and blogging platform enabling 
 
 | Layer       | Technology                                                  | Status                       |
 | ----------- | ----------------------------------------------------------- | ---------------------------- |
-| Frontend    | React 19, TypeScript, Vite, React Router v7                 | ✅ Integrated (Phase 4, 5, 6, 7, 8, 9)|
+| Frontend    | React 19, TypeScript, Vite, React Router v7                 | ✅ Integrated (Phase 4, 5, 6, 7, 8, 9, 10)|
 | Design System| **Aurora** (Warm Porcelain, Instrument Serif, Minimalist)   | ✅ Permanent Standard        |
 | Backend     | Node.js, Express.js, TypeScript                             | ✅ Production-ready          |
-| Database    | PostgreSQL (Local `talent_growth_dev` / Supabase)            | ✅ Relational Schema         |
+| Database    | PostgreSQL (Local `talent_growth_dev` / Supabase Cloud)      | ✅ Relational Schema         |
 | ORM         | Prisma ORM (v7.10.0 + `@prisma/adapter-pg` driver)          | ✅ Configured & Migrated     |
 | Auth        | JWT (HS256) + bcrypt (12 rounds) + Zod + In-Memory RAM Store | ✅ Tested & Verified         |
 | Storage     | Supabase Storage (`avatars`, `post-covers`) + sharp WebP     | ✅ Media Processing Pipeline |
@@ -22,7 +26,7 @@ Talent Growth Blog Platform is a web publication and blogging platform enabling 
 | Markdown    | react-markdown v10, remark-gfm v4, rehype-sanitize v6        | ✅ Safe Rendering & Sanitization |
 | HTTP Client | Axios (Centralized instance with Bearer interceptor)        | ✅ Implemented               |
 | Code Split  | React.lazy & Suspense with Aurora fallback                  | ✅ Route-level chunks        |
-| Deployment  | Vercel (Frontend), Railway (Backend), Supabase (DB)         | ⏳ Planned (Phase 11)        |
+| Deployment  | Vercel (Frontend), Render (Backend), Supabase (DB & Storage)| ✅ **Live in Production**    |
 
 ---
 
@@ -527,7 +531,7 @@ npm run dev
 
 ---
 
-## ✅ Current Status (Phase 10 Completed)
+## ✅ Current Status (Phase 11 Deployed to Production)
 
 - [x] **Phase 1**: Full-stack scaffolding (React 19 + Express + TypeScript)
 - [x] **Phase 2**: PostgreSQL schema, Prisma ORM v7, database health checks
@@ -538,16 +542,12 @@ npm run dev
 - [x] **Phase 7**: Author Directory, Public Author Profiles & Profile Management (22 tests)
 - [x] **Phase 8**: Search, Pagination, Markdown Editor & Safe Content Rendering (29 tests)
 - [x] **Phase 9**: Avatar Upload, Article Cover Images & Supabase Storage Integration (23 tests)
-- [x] **Phase 10**: Comprehensive Quality Audit, Performance Optimization, Accessibility & Topics Navigation:
-  - [x] Completed Topics taxonomy navigation (`/topics` page & `GET /api/v1/topics` endpoint) deriving real categories from live PostgreSQL articles with accurate counts.
-  - [x] Removed obsolete "Topic taxonomy arriving in Phase 8" placeholder tooltip from both desktop and mobile navigation.
-  - [x] Route-level code-splitting with `React.lazy` and `<Suspense>` with Aurora loading fallback, reducing initial client JS parsing overhead.
-  - [x] Dynamic SPA SEO document titles and meta descriptions across all 11 routes via `useDocumentTitle` hook.
-  - [x] Comprehensive WCAG AA accessibility audit: `:focus-visible` outlines, `prefers-reduced-motion` compliance, semantic landmarks, aria attributes, and button names.
-  - [x] Responsive CSS audit: overflow containment for code blocks, tables, long words, and small mobile displays (320px–375px).
-  - [x] 145/145 total passing automated tests (132 backend + 13 frontend).
-  - [x] Zero warnings and zero errors in Oxlint lint check.
-  - [x] Production builds verified for both frontend (`tsc -b && vite build`) and backend (`tsc`).
+- [x] **Phase 10**: Comprehensive Quality Audit, Performance Optimization, Accessibility & Topics Navigation (145 tests)
+- [x] **Phase 11**: Full Production Cloud Deployment:
+  - [x] **Frontend Live on Vercel**: [https://talent-growth-one.vercel.app/](https://talent-growth-one.vercel.app/) with automated SPA routing rewrites (`vercel.json`).
+  - [x] **Backend Live on Render**: [https://talent-growth.onrender.com](https://talent-growth.onrender.com) with automated Prisma DDL migrations.
+  - [x] **Database & Media Storage Live on Supabase**: PostgreSQL database (`talent_growth_dev` schema) and public media buckets (`avatars`, `post-covers`) with IPv4 connection pooling.
+  - [x] **Full-Stack Integration Verified**: End-to-end communication, CORS authorization, and database health verified live in production.
 
 ---
 
@@ -565,7 +565,7 @@ npm run dev
 | 8     | Search, pagination, markdown & safe rendering   | ✅ Done     |
 | 9     | Photo upload & media management                 | ✅ Done     |
 | 10    | Quality Audit, Accessibility & Topics Polish    | ✅ Done     |
-| 11    | Deployment (Vercel, Railway, Supabase)          | ⏳ Upcoming |
+| 11    | Deployment (Vercel, Render, Supabase)          | ✅ Done     |
 
 ---
 
