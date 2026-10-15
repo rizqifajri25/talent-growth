@@ -5,6 +5,7 @@ import { extractApiError } from '../api/client';
 import { useAuth } from '../context/useAuth';
 import { PostCard } from '../components/posts/PostCard';
 import { Pagination } from '../components/common/Pagination';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 import type { Post, PaginationMeta } from '../types/posts.types';
 
 const STANDARD_CATEGORIES = [
@@ -24,6 +25,11 @@ export const EssaysPage: React.FC = () => {
   const queryParam = searchParams.get('q') || '';
   const categoryParam = searchParams.get('category') || 'All';
   const pageParam = Math.max(1, parseInt(searchParams.get('page') || '1', 10) || 1);
+
+  useDocumentTitle(
+    categoryParam !== 'All' ? `${categoryParam} Essays` : 'The Archive — Essays',
+    'Browse our curated collection of technical essays, architecture patterns, and engineering reflections.'
+  );
 
   // Search input state with live typing responsiveness
   const [prevQuery, setPrevQuery] = useState(queryParam);

@@ -52,14 +52,12 @@ export const Navbar: React.FC = () => {
             Essays
           </NavLink>
 
-          {/* Planned modules kept as clear upcoming indicators */}
-          <span
-            className="nav-link nav-link-disabled"
-            title="Topic taxonomy arriving in Phase 8"
-            aria-disabled="true"
+          <NavLink
+            to="/topics"
+            className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
           >
             Topics
-          </span>
+          </NavLink>
           <NavLink
             to="/writers"
             className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}
@@ -145,6 +143,14 @@ export const Navbar: React.FC = () => {
             onClick={() => setMobileMenuOpen(false)}
           >
             Essays
+          </NavLink>
+
+          <NavLink
+            to="/topics"
+            className="nav-link"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            Topics
           </NavLink>
 
           <NavLink

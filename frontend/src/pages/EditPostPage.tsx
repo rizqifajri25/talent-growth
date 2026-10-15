@@ -5,6 +5,7 @@ import { extractApiError } from '../api/client';
 import { useAuth } from '../context/useAuth';
 import { MarkdownEditor } from '../components/markdown/MarkdownEditor';
 import type { Post } from '../types/posts.types';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export const EditPostPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,6 +14,7 @@ export const EditPostPage: React.FC = () => {
 
   const [post, setPost] = useState<Post | null>(null);
   const [title, setTitle] = useState('');
+  useDocumentTitle(title ? `Edit "${title}"` : 'Edit Essay', 'Revise and polish your essay on Talent Growth.');
   const [content, setContent] = useState('');
   const [category, setCategory] = useState('');
 

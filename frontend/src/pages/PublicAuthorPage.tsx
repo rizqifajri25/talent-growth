@@ -4,6 +4,7 @@ import { authorsApi } from '../api/authors.api';
 import { extractApiError } from '../api/client';
 import { Pagination } from '../components/common/Pagination';
 import { getExcerpt } from '../utils/markdownUtils';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 import type { PublicAuthorProfile } from '../types/authors.types';
 
 export const PublicAuthorPage: React.FC = () => {
@@ -18,6 +19,8 @@ export const PublicAuthorPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isNotFound, setIsNotFound] = useState(!id);
   const [refreshIndex, setRefreshIndex] = useState(0);
+
+  useDocumentTitle(author ? `${author.name} — Writers` : 'Author Profile', author?.bio || undefined);
 
   const handleRetry = useCallback(() => {
     setIsLoading(true);

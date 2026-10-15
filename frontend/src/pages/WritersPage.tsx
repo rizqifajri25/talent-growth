@@ -3,10 +3,12 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { authorsApi } from '../api/authors.api';
 import { extractApiError } from '../api/client';
 import { Pagination } from '../components/common/Pagination';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 import type { AuthorSummary } from '../types/authors.types';
 import type { PaginationMeta } from '../types/posts.types';
 
 export const WritersPage: React.FC = () => {
+  useDocumentTitle('The Writers', 'Discover technical writers, architects, and engineering craftspeople publishing on Talent Growth.');
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Read URL query parameters as single source of truth

@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { extractApiError } from '../api/client';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export const LoginPage: React.FC = () => {
+  useDocumentTitle('Sign In', 'Sign in to your Talent Growth author workspace.');
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();

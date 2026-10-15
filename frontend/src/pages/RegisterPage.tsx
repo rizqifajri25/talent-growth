@@ -2,8 +2,10 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/useAuth';
 import { extractApiError } from '../api/client';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export const RegisterPage: React.FC = () => {
+  useDocumentTitle('Create an Account', 'Register to join the Talent Growth editorial platform and publish technical essays.');
   const { register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 

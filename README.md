@@ -17,10 +17,11 @@ Talent Growth Blog Platform is a web publication and blogging platform enabling 
 | ORM         | Prisma ORM (v7.10.0 + `@prisma/adapter-pg` driver)          | ✅ Configured & Migrated     |
 | Auth        | JWT (HS256) + bcrypt (12 rounds) + Zod + In-Memory RAM Store | ✅ Tested & Verified         |
 | Storage     | Supabase Storage (`avatars`, `post-covers`) + sharp WebP     | ✅ Media Processing Pipeline |
-| Testing     | Vitest, Supertest                                           | ✅ **142/142 Tests Passing** (129 backend + 13 frontend) |
+| Testing     | Vitest, Supertest                                           | ✅ **145/145 Tests Passing** (132 backend + 13 frontend) |
 | Linter      | Oxlint (Fast Rust-based linting, 0 warnings, 0 errors)       | ✅ Enforced                  |
 | Markdown    | react-markdown v10, remark-gfm v4, rehype-sanitize v6        | ✅ Safe Rendering & Sanitization |
 | HTTP Client | Axios (Centralized instance with Bearer interceptor)        | ✅ Implemented               |
+| Code Split  | React.lazy & Suspense with Aurora fallback                  | ✅ Route-level chunks        |
 | Deployment  | Vercel (Frontend), Railway (Backend), Supabase (DB)         | ⏳ Planned (Phase 11)        |
 
 ---
@@ -61,7 +62,8 @@ talent-growth/
 │   │   │   ├── auth.api.ts    # Auth endpoints (register, login, logout, getMe, updateProfile)
 │   │   │   ├── posts.api.ts   # Blog post CRUD service
 │   │   │   ├── comments.api.ts# Threaded comments service (get, create, update, delete)
-│   │   │   └── authors.api.ts # Author directory & public profiles service
+│   │   │   ├── authors.api.ts # Author directory & public profiles service
+│   │   │   └── topics.api.ts  # Topics taxonomy & category counts service
 │   │   ├── components/        # Reusable UI components
 │   │   │   ├── auth/
 │   │   │   │   └── ProtectedRoute.tsx # Route guard redirecting to /login
@@ -70,8 +72,8 @@ talent-growth/
 │   │   │   │   ├── CommentItem.tsx        # Recursive threaded item with inline edit & reply
 │   │   │   │   └── CommentDeleteModal.tsx # Accessible soft-delete confirmation modal
 │   │   │   ├── layout/
-│   │   │   │   ├── AppLayout.tsx      # Shell layout (Navbar, Outlet, Footer)
-│   │   │   │   └── Navbar.tsx         # Aurora sticky header with Writers link & mobile drawer
+│   │   │   │   ├── AppLayout.tsx      # Shell layout with Suspense fallback
+│   │   │   │   └── Navbar.tsx         # Aurora sticky header with active Topics & Writers links
 │   │   │   └── posts/
 │   │   │       ├── PostCard.tsx       # Editorial article card with category badge
 │   │   │       └── DeleteConfirmModal.tsx # Accessible modal for post removal
@@ -79,9 +81,10 @@ talent-growth/
 │   │   │   ├── authContextDef.ts # Fast Refresh safe auth context definition
 │   │   │   ├── AuthContext.tsx   # AuthProvider managing authentication state & user sync
 │   │   │   └── useAuth.ts        # Custom hook for consuming auth context
-│   │   ├── pages/             # Page components
+│   │   ├── pages/             # Page components (Lazy-loaded via React.lazy)
 │   │   │   ├── HomePage.tsx       # Split-hero with latest live PostgreSQL essays
 │   │   │   ├── EssaysPage.tsx     # Full archive with category topic filters
+│   │   │   ├── TopicsPage.tsx     # Editorial topics taxonomy derived from database categories
 │   │   │   ├── PostDetailPage.tsx # Editorial reading view with threaded comments section
 │   │   │   ├── WritersPage.tsx    # Author directory of published contributors
 │   │   │   ├── PublicAuthorPage.tsx # Public author profile with author bio and published essays
@@ -94,12 +97,15 @@ talent-growth/
 │   │   │   ├── auth.types.ts      # User (with bio), session, update payload, and response types
 │   │   │   ├── posts.types.ts     # Post, Author, CRUD payloads, API wrappers
 │   │   │   ├── comments.types.ts  # Comment, CommentAuthor, payloads, API wrappers
-│   │   │   └── authors.types.ts   # AuthorSummary, PublicAuthorProfile, AuthorPost
-│   │   ├── App.tsx            # Root router & protected route configuration
-│   │   ├── App.css            # Aurora editorial styling & responsive rules
+│   │   │   ├── authors.types.ts   # AuthorSummary, PublicAuthorProfile, AuthorPost
+│   │   │   └── topics.types.ts    # TopicItem and TopicsApiResponse
+│   │   ├── utils/
+│   │   │   └── useDocumentTitle.ts # SPA document title and meta description hook
+│   │   ├── App.tsx            # Root router with route-level React.lazy code splitting
+│   │   ├── App.css            # Aurora editorial styling, accessibility & responsive rules
 │   │   ├── index.css          # Aurora design tokens & base typography
 │   │   └── main.tsx           # React entry point
-│   ├── index.html             # HTML shell loading Google Fonts
+│   ├── index.html             # HTML shell loading Google Fonts & SEO metadata
 │   └── package.json           # Frontend dependencies & scripts
 ├── backend/                   # Node.js + Express.js API server
 │   ├── prisma/
@@ -122,7 +128,8 @@ talent-growth/
 │   │   │   ├── auth.controller.ts     # Register, login, logout, getMe, updateMe, avatar upload/delete
 │   │   │   ├── posts.controller.ts    # Blog post CRUD & cover upload/delete controllers
 │   │   │   ├── comments.controller.ts # Nested comments & mutation controllers
-│   │   │   └── authors.controller.ts  # Author directory & public profile controllers
+│   │   │   ├── authors.controller.ts  # Author directory & public profile controllers
+│   │   │   └── topics.controller.ts   # Topic taxonomy controller
 │   │   ├── generated/         # Generated Prisma Client
 │   │   ├── middleware/        # Express middleware
 │   │   │   ├── requireAuth.ts # Bearer token & active database session verification
@@ -132,12 +139,14 @@ talent-growth/
 │   │   │   ├── posts.routes.ts    # /api/v1/posts routes (including cover upload/delete)
 │   │   │   ├── comments.routes.ts # /api/v1/posts/:id/comments & /comments/:id
 │   │   │   ├── authors.routes.ts  # /api/v1/authors routes
+│   │   │   ├── topics.routes.ts   # /api/v1/topics taxonomy routes
 │   │   │   └── health.routes.ts   # Health & diagnostic checks
 │   │   ├── services/          # Business logic layer
 │   │   │   ├── auth.service.ts     # Password hashing, JWT sessions, profile & avatar lifecycle
 │   │   │   ├── posts.service.ts    # Post queries, ownership enforcement, cover lifecycle & cleanup
 │   │   │   ├── comments.service.ts # Tree builder, parent validation, soft-delete policy
 │   │   │   ├── authors.service.ts  # Published author aggregation, public profile projection
+│   │   │   ├── topics.service.ts   # Post category grouping, trimming & alphabetical ordering
 │   │   │   ├── image-processor.service.ts # Sharp decoding, orientation, WebP conversion & bomb protection
 │   │   │   └── media-storage.service.ts   # Supabase Storage client, path extraction, mock injection
 │   │   ├── validators/        # Zod request validators
@@ -152,7 +161,8 @@ talent-growth/
 │   │   │   ├── comments.api.test.ts    # 22 threaded comments integration tests
 │   │   │   ├── authors.api.test.ts     # 22 author directory & profile integration tests
 │   │   │   ├── search.pagination.test.ts # 19 search & pagination tests
-│   │   │   └── media.storage.test.ts   # 23 media processing, upload & storage tests
+│   │   │   ├── media.storage.test.ts   # 23 media processing, upload & storage tests
+│   │   │   └── topics.api.test.ts      # 3 topics taxonomy integration tests
 │   │   ├── app.ts             # Express application & route registration
 │   │   └── server.ts          # Server entry point
 │   ├── package.json           # Backend dependencies & scripts
@@ -375,7 +385,35 @@ To configure Supabase Storage for remote production or local cloud testing:
 
 ---
 
-### 7. Diagnostic Endpoints (`/api/v1/health`)
+### 7. Topics Taxonomy Endpoints (`/api/v1/topics`)
+
+| Method | Endpoint | Access | Query Parameters | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `GET` | `/api/v1/topics` | **Public** | None | Returns distinct non-empty categories derived from live PostgreSQL articles with accurate `postCount`, sorted alphabetically. Null/empty categories excluded. |
+
+#### Topics Data Rationale:
+- **Zero Schema Changes**: Categories are aggregated directly from the existing `Post.category` field using Prisma grouping and counting.
+- **Privacy Guaranteed**: Does not expose author identities, emails, password hashes, or session tokens.
+- **Deep Integration**: Topics cards link seamlessly to the archive filter: `/essays?category=<name>`.
+
+```json
+// Example GET /api/v1/topics Response
+{
+  "success": true,
+  "message": "Topics retrieved successfully",
+  "data": {
+    "topics": [
+      { "name": "Architecture", "postCount": 1 },
+      { "name": "Developer", "postCount": 1 },
+      { "name": "engineering of the software", "postCount": 1 }
+    ]
+  }
+}
+```
+
+---
+
+### 8. Diagnostic Endpoints (`/api/v1/health`)
 - `GET /api/v1/health` — Basic API health check
 - `GET /api/v1/health/db` — PostgreSQL connection and latency check
 
@@ -387,6 +425,7 @@ To configure Supabase Storage for remote production or local cloud testing:
 | :--- | :--- | :--- | :--- |
 | `/` | `HomePage` | Public | Split-hero with recent essays fetched from PostgreSQL, reading CTAs. |
 | `/essays` | `EssaysPage` | Public | The Archive: complete list of essays with topic category filter pills. |
+| `/topics` | `TopicsPage` | Public | Editorial taxonomy derived from real database categories with article counts. |
 | `/essays/:id` | `PostDetailPage` | Public | Reading view with full article, author controls, and Aurora threaded comments conversation. |
 | `/writers` | `WritersPage` | Public | The Writers: directory of published contributors with bio, essay count, and profile links. |
 | `/writers/:id` | `PublicAuthorPage`| Public | Public author profile showing biography, join date, metrics, and published essay catalog. |
@@ -401,11 +440,11 @@ To configure Supabase Storage for remote production or local cloud testing:
 
 ## 🧪 Testing & Verification
 
-### Full Automated Test Suite (142 Passing Tests)
-Run all unit, integration, storage, and security tests across backend (129 tests) and frontend (13 tests):
+### Full Automated Test Suite (145 Passing Tests)
+Run all unit, integration, storage, and security tests across backend (132 tests) and frontend (13 tests):
 
 ```bash
-# Backend test suite (129 passing tests across 7 suites)
+# Backend test suite (132 passing tests across 8 suites)
 cd backend
 npm test
 
@@ -415,6 +454,7 @@ npm test
 ```
 
 Test coverage includes:
+- `topics.api.test.ts` (3 tests): Category grouping and aggregation from PostgreSQL, accurate post counts, exclusion of null/empty/blank values, alphabetical ordering, and privacy protection.
 - `media.storage.test.ts` (23 tests): JPEG, PNG, and WebP valid buffer processing; rejection of fake MIME extensions (text disguised as jpg), SVG, animated GIF, and corrupted image buffers; rejection of images exceeding 40 Megapixels decompression bomb limit; avatar upload authentication requirement, user profile avatar URL update, avatar replacement with previous object cleanup, avatar removal reverting `avatarUrl` to null for monogram fallback, prevention of target user manipulation from request body; post cover upload authentication & ownership checks (403 for unauthorized users, 404 for missing post), alt text length validation (max 160 characters), cover update & previous object cleanup, cover removal setting fields to null, post deletion cover object cleanup, compensating cleanup when database updates fail, and safe error handling without secret leakage.
 - `search.pagination.test.ts` (19 tests): Article search by title, article search by content, case-insensitive normalization, whitespace trimming, combined search and category filtering, deterministic sorting (`createdAt DESC, id DESC`), pagination defaults (`page=1, limit=9`), pagination boundaries and rejection of invalid/negative/decimal/exceeding limits, empty state pagination consistency, author directory search by name/bio with email isolation, author directory pagination, and public author profile essay pagination (`postsPage`, `postsLimit`) with total `postCount` preservation.
 - `authors.api.test.ts` (22 tests): Public directory access, contributor postCount filtering, name sorting, bio display, email/passwordHash privacy protection, public profile by ID, newest-first essay ordering, 0-post user empty state, invalid UUID (400), user not found (404), profile update (`PATCH /api/v1/auth/me`), name validation (1-80 chars), bio length (500 chars), whitespace normalization to `null`, rejection of empty update body, forbidden field protection (`email`, `id`, `avatarUrl`), 401 unauthenticated check, revoked session rejection, database persistence, and isolated test cleanup.
@@ -487,7 +527,7 @@ npm run dev
 
 ---
 
-## ✅ Current Status (Phase 9 Completed)
+## ✅ Current Status (Phase 10 Completed)
 
 - [x] **Phase 1**: Full-stack scaffolding (React 19 + Express + TypeScript)
 - [x] **Phase 2**: PostgreSQL schema, Prisma ORM v7, database health checks
@@ -497,18 +537,17 @@ npm run dev
 - [x] **Phase 6**: Nested Comments System, Replies, Ownership Authorization & Aurora UI (22 tests)
 - [x] **Phase 7**: Author Directory, Public Author Profiles & Profile Management (22 tests)
 - [x] **Phase 8**: Search, Pagination, Markdown Editor & Safe Content Rendering (29 tests)
-- [x] **Phase 9**: Avatar Upload, Article Cover Images & Supabase Storage Integration:
-  - [x] Authenticated avatar upload (`POST /api/v1/auth/me/avatar`) and deletion (`DELETE /api/v1/auth/me/avatar`) with monogram fallback.
-  - [x] Authenticated article cover upload (`POST /api/v1/posts/:id/cover`) and deletion (`DELETE /api/v1/posts/:id/cover`) with strict author ownership enforcement.
-  - [x] High-performance image processing pipeline with `sharp`: decoding verification, format restriction (JPEG/PNG/WebP), EXIF stripping, auto-orientation, decompression bomb protection (>40MP), 512x512 avatar square crop, and 2400x1600 cover scaling.
-  - [x] Multer memory storage middleware with 5MB avatar and 8MB cover input limits.
-  - [x] Supabase Storage integration with public read model for `avatars` and `post-covers` buckets.
-  - [x] Storage service abstraction (`media-storage.service.ts`) with test provider injection for deterministic tests without live cloud credentials.
-  - [x] Database migration adding nullable `cover_image_url` and `cover_image_alt` columns to `Post` with backward compatibility for legacy articles.
-  - [x] Partial failure resilience and compensating cleanup when database updates fail after media upload.
-  - [x] Full Aurora frontend integration on ProfilePage, NewPostPage, EditPostPage, PostDetailPage, PostCard (HomePage, EssaysPage, ProfilePage), and PublicAuthorPage.
-  - [x] 23 new media storage and processing automated tests (**142/142 total passing automated tests**).
-  - [x] Aurora design system visual continuity with 0 browser inspection rules respected.
+- [x] **Phase 9**: Avatar Upload, Article Cover Images & Supabase Storage Integration (23 tests)
+- [x] **Phase 10**: Comprehensive Quality Audit, Performance Optimization, Accessibility & Topics Navigation:
+  - [x] Completed Topics taxonomy navigation (`/topics` page & `GET /api/v1/topics` endpoint) deriving real categories from live PostgreSQL articles with accurate counts.
+  - [x] Removed obsolete "Topic taxonomy arriving in Phase 8" placeholder tooltip from both desktop and mobile navigation.
+  - [x] Route-level code-splitting with `React.lazy` and `<Suspense>` with Aurora loading fallback, reducing initial client JS parsing overhead.
+  - [x] Dynamic SPA SEO document titles and meta descriptions across all 11 routes via `useDocumentTitle` hook.
+  - [x] Comprehensive WCAG AA accessibility audit: `:focus-visible` outlines, `prefers-reduced-motion` compliance, semantic landmarks, aria attributes, and button names.
+  - [x] Responsive CSS audit: overflow containment for code blocks, tables, long words, and small mobile displays (320px–375px).
+  - [x] 145/145 total passing automated tests (132 backend + 13 frontend).
+  - [x] Zero warnings and zero errors in Oxlint lint check.
+  - [x] Production builds verified for both frontend (`tsc -b && vite build`) and backend (`tsc`).
 
 ---
 
@@ -525,7 +564,7 @@ npm run dev
 | 7     | Author Directory, Public Profiles & Profile Mgmt| ✅ Done     |
 | 8     | Search, pagination, markdown & safe rendering   | ✅ Done     |
 | 9     | Photo upload & media management                 | ✅ Done     |
-| 10    | Testing & Polish                                | ⏳ Upcoming |
+| 10    | Quality Audit, Accessibility & Topics Polish    | ✅ Done     |
 | 11    | Deployment (Vercel, Railway, Supabase)          | ⏳ Upcoming |
 
 ---

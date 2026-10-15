@@ -4,9 +4,11 @@ import { useAuth } from '../context/useAuth';
 import { postsApi } from '../api/posts.api';
 import { extractApiError } from '../api/client';
 import { PostCard } from '../components/posts/PostCard';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 import type { Post } from '../types/posts.types';
 
 export const HomePage: React.FC = () => {
+  useDocumentTitle('Home', 'A calm editorial publication platform for engineering, systems craft, and thought leadership.');
   const { user, isAuthenticated } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoadingPosts, setIsLoadingPosts] = useState(true);

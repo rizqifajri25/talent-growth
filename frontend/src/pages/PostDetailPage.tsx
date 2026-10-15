@@ -6,6 +6,7 @@ import { useAuth } from '../context/useAuth';
 import { DeleteConfirmModal } from '../components/posts/DeleteConfirmModal';
 import { CommentSection } from '../components/comments/CommentSection';
 import { MarkdownRenderer } from '../components/markdown/MarkdownRenderer';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 import type { Post } from '../types/posts.types';
 
 export const PostDetailPage: React.FC = () => {
@@ -17,6 +18,8 @@ export const PostDetailPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(Boolean(id));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isNotFound, setIsNotFound] = useState(!id);
+
+  useDocumentTitle(post ? post.title : 'Essay Reading Desk', post ? post.coverImageAlt || undefined : undefined);
 
   // Deletion modal state
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);

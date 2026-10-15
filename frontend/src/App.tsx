@@ -1,19 +1,22 @@
-import React from 'react';
+import React, { lazy } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { AppLayout } from './components/layout/AppLayout';
-import { HomePage } from './pages/HomePage';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { EssaysPage } from './pages/EssaysPage';
-import { PostDetailPage } from './pages/PostDetailPage';
-import { NewPostPage } from './pages/NewPostPage';
-import { EditPostPage } from './pages/EditPostPage';
-import { WritersPage } from './pages/WritersPage';
-import { PublicAuthorPage } from './pages/PublicAuthorPage';
 import { ProtectedRoute } from './components/auth/ProtectedRoute';
 import './App.css';
+
+// Route-level code splitting for performance optimization
+const HomePage = lazy(() => import('./pages/HomePage').then((m) => ({ default: m.HomePage })));
+const EssaysPage = lazy(() => import('./pages/EssaysPage').then((m) => ({ default: m.EssaysPage })));
+const PostDetailPage = lazy(() => import('./pages/PostDetailPage').then((m) => ({ default: m.PostDetailPage })));
+const TopicsPage = lazy(() => import('./pages/TopicsPage').then((m) => ({ default: m.TopicsPage })));
+const WritersPage = lazy(() => import('./pages/WritersPage').then((m) => ({ default: m.WritersPage })));
+const PublicAuthorPage = lazy(() => import('./pages/PublicAuthorPage').then((m) => ({ default: m.PublicAuthorPage })));
+const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })));
+const RegisterPage = lazy(() => import('./pages/RegisterPage').then((m) => ({ default: m.RegisterPage })));
+const NewPostPage = lazy(() => import('./pages/NewPostPage').then((m) => ({ default: m.NewPostPage })));
+const EditPostPage = lazy(() => import('./pages/EditPostPage').then((m) => ({ default: m.EditPostPage })));
+const ProfilePage = lazy(() => import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage })));
 
 const App: React.FC = () => {
   return (
@@ -25,6 +28,7 @@ const App: React.FC = () => {
             <Route index element={<HomePage />} />
             <Route path="essays" element={<EssaysPage />} />
             <Route path="essays/:id" element={<PostDetailPage />} />
+            <Route path="topics" element={<TopicsPage />} />
             <Route path="writers" element={<WritersPage />} />
             <Route path="writers/:id" element={<PublicAuthorPage />} />
 

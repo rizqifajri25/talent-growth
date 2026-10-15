@@ -8,8 +8,10 @@ import { PostCard } from '../components/posts/PostCard';
 import { DeleteConfirmModal } from '../components/posts/DeleteConfirmModal';
 import type { User } from '../types/auth.types';
 import type { Post } from '../types/posts.types';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export const ProfilePage: React.FC = () => {
+  useDocumentTitle('Author Workspace', 'Manage your profile and published essays on Talent Growth.');
   const { logout, updateUser } = useAuth();
   const navigate = useNavigate();
 

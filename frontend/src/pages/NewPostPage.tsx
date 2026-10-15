@@ -3,8 +3,10 @@ import { useNavigate, Link } from 'react-router-dom';
 import { postsApi } from '../api/posts.api';
 import { extractApiError } from '../api/client';
 import { MarkdownEditor } from '../components/markdown/MarkdownEditor';
+import { useDocumentTitle } from '../utils/useDocumentTitle';
 
 export const NewPostPage: React.FC = () => {
+  useDocumentTitle('New Essay', 'Draft and publish a new essay on Talent Growth.');
   const navigate = useNavigate();
 
   const [title, setTitle] = useState('');
