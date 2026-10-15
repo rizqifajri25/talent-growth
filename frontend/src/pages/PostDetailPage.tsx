@@ -77,6 +77,15 @@ export const PostDetailPage: React.FC = () => {
     isAuthenticated && user && post && user.id === post.authorId
   );
 
+  const getInitials = (name?: string): string => {
+    if (!name) return 'U';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[1][0]).toUpperCase();
+    }
+    return parts[0].substring(0, 2).toUpperCase();
+  };
+
   const formattedDate = post
     ? new Intl.DateTimeFormat('en-US', {
         month: 'long',
@@ -172,10 +181,28 @@ export const PostDetailPage: React.FC = () => {
 
         <div className="article-author-bar">
           <div className="article-author-info">
-            <span className="author-avatar-dot" aria-hidden="true" />
+            <Link
+              to={`/writers/${post.author.id}`}
+              className="article-author-avatar-link"
+              aria-label={`View ${post.author.name}'s profile`}
+            >
+              {post.author.avatarUrl ? (
+                <img
+                  src={post.author.avatarUrl}
+                  alt={post.author.name}
+                  className="article-author-avatar-img"
+                />
+              ) : (
+                <span className="article-author-avatar-monogram" aria-hidden="true">
+                  {getInitials(post.author.name)}
+                </span>
+              )}
+            </Link>
             <div>
               <span className="article-author-label">WRITTEN BY</span>
-              <div className="article-author-name">{post.author.name}</div>
+              <div className="article-author-name">
+                <Link to={`/writers/${post.author.id}`}>{post.author.name}</Link>
+              </div>
             </div>
           </div>
 

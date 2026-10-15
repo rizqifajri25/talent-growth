@@ -6,6 +6,7 @@ import { extractApiError } from '../api/client';
 import { useAuth } from '../context/useAuth';
 import { PostCard } from '../components/posts/PostCard';
 import { DeleteConfirmModal } from '../components/posts/DeleteConfirmModal';
+import { compressImageToDataUrl } from '../utils/imageCompressor';
 import type { User } from '../types/auth.types';
 import type { Post } from '../types/posts.types';
 
@@ -22,6 +23,8 @@ export const ProfilePage: React.FC = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [editName, setEditName] = useState('');
   const [editBio, setEditBio] = useState('');
+  const [editAvatarUrl, setEditAvatarUrl] = useState<string | null>(null);
+  const [isProcessingAvatar, setIsProcessingAvatar] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [profileUpdateSuccess, setProfileUpdateSuccess] = useState<string | null>(null);
   const [profileUpdateError, setProfileUpdateError] = useState<string | null>(null);
@@ -46,6 +49,7 @@ export const ProfilePage: React.FC = () => {
         setProfile(currentUser);
         setEditName(currentUser.name);
         setEditBio(currentUser.bio || '');
+        setEditAvatarUrl(currentUser.avatarUrl || null);
         setIsLoadingProfile(false);
 
         // Fetch posts for author
@@ -94,6 +98,29 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessingAvatar(true);
+    setProfileUpdateError(null);
+
+    try {
+      const compressedDataUrl = await compressImageToDataUrl(file, {
+        maxWidth: 400,
+        maxHeight: 400,
+        quality: 0.85,
+      });
+      setEditAvatarUrl(compressedDataUrl);
+    } catch (err: any) {
+      setProfileUpdateError(err.message || 'Failed to process selected image.');
+    } finally {
+      setIsProcessingAvatar(false);
+      // Reset input element so re-selecting same file works
+      e.target.value = '';
+    }
+  };
+
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     const trimmedName = editName.trim();
@@ -122,11 +149,13 @@ export const ProfilePage: React.FC = () => {
       const updatedUser = await authApi.updateProfile({
         name: trimmedName,
         bio: trimmedBio || null,
+        avatarUrl: editAvatarUrl,
       });
 
       setProfile(updatedUser);
       setEditName(updatedUser.name);
       setEditBio(updatedUser.bio || '');
+      setEditAvatarUrl(updatedUser.avatarUrl || null);
       setIsEditingProfile(false);
       setProfileUpdateSuccess('Your profile has been updated successfully.');
 
@@ -144,6 +173,7 @@ export const ProfilePage: React.FC = () => {
     if (profile) {
       setEditName(profile.name);
       setEditBio(profile.bio || '');
+      setEditAvatarUrl(profile.avatarUrl || null);
     }
     setProfileUpdateError(null);
     setIsEditingProfile(false);
@@ -252,8 +282,18 @@ export const ProfilePage: React.FC = () => {
         <div className="aurora-profile-card">
           <div className="profile-card-header">
             <div className="profile-identity-row">
-              <div className="profile-monogram-large" aria-hidden="true">
-                {getInitials(profile.name)}
+              <div className="profile-avatar-large-circle" aria-hidden="true">
+                {profile.avatarUrl ? (
+                  <img
+                    src={profile.avatarUrl}
+                    alt={profile.name}
+                    className="profile-avatar-large-img"
+                  />
+                ) : (
+                  <span className="profile-monogram-large">
+                    {getInitials(profile.name)}
+                  </span>
+                )}
               </div>
 
               <div className="profile-identity-details">
@@ -290,6 +330,71 @@ export const ProfilePage: React.FC = () => {
           {/* Edit Profile Form Mode */}
           {isEditingProfile ? (
             <form className="profile-edit-form" onSubmit={handleSaveProfile}>
+              {/* Photo Upload Section */}
+              <div className="profile-avatar-edit-box">
+                <div className="profile-avatar-large-circle" aria-hidden="true">
+                  {editAvatarUrl ? (
+                    <img
+                      src={editAvatarUrl}
+                      alt="Avatar preview"
+                      className="profile-avatar-large-img"
+                    />
+                  ) : (
+                    <span className="profile-monogram-large">
+                      {getInitials(editName || profile.name)}
+                    </span>
+                  )}
+                </div>
+
+                <div className="profile-avatar-edit-actions">
+                  <span className="profile-label">Profile Photo</span>
+                  <p className="profile-avatar-help">
+                    Choose a photo from your computer or phone gallery (JPEG, PNG, WebP).
+                  </p>
+                  <div className="profile-avatar-btn-group">
+                    <input
+                      id="avatar-file-upload"
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleAvatarFileChange}
+                      disabled={isSavingProfile || isProcessingAvatar}
+                    />
+                    <label
+                      htmlFor="avatar-file-upload"
+                      className={`btn-outline-pill btn-pill-sm ${
+                        isSavingProfile || isProcessingAvatar ? 'disabled' : ''
+                      }`}
+                      style={{
+                        cursor:
+                          isSavingProfile || isProcessingAvatar
+                            ? 'not-allowed'
+                            : 'pointer',
+                      }}
+                    >
+                      <span>
+                        {isProcessingAvatar
+                          ? 'Optimizing Image...'
+                          : editAvatarUrl
+                          ? 'Change Photo 📷'
+                          : 'Upload Photo 📷'}
+                      </span>
+                    </label>
+
+                    {editAvatarUrl && (
+                      <button
+                        type="button"
+                        className="btn-delete-ghost btn-pill-sm"
+                        onClick={() => setEditAvatarUrl(null)}
+                        disabled={isSavingProfile || isProcessingAvatar}
+                      >
+                        Remove Photo
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+
               <div className="profile-form-grid">
                 <div className="profile-input-group">
                   <label htmlFor="edit-name" className="profile-label">

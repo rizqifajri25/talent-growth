@@ -279,12 +279,19 @@ export class AuthService {
     userId: string,
     input: UpdateProfileInput
   ): Promise<SafeUser> {
-    const dataToUpdate: { name?: string; bio?: string | null } = {};
+    const dataToUpdate: {
+      name?: string;
+      bio?: string | null;
+      avatarUrl?: string | null;
+    } = {};
     if (input.name !== undefined) {
       dataToUpdate.name = input.name;
     }
     if (input.bio !== undefined) {
       dataToUpdate.bio = input.bio;
+    }
+    if (input.avatarUrl !== undefined) {
+      dataToUpdate.avatarUrl = input.avatarUrl;
     }
 
     try {

@@ -8,8 +8,9 @@ import authorRoutes from './routes/authors.routes';
 
 const app = express();
 
-// Parse JSON request bodies
-app.use(express.json());
+// Parse JSON request bodies (supporting avatar photo data URLs)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // Configure CORS
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';

@@ -140,8 +140,18 @@ export const PublicAuthorPage: React.FC = () => {
       {/* Author Profile Header Card */}
       <header className="author-hero-card">
         <div className="author-hero-content">
-          <div className="author-monogram-large" aria-hidden="true">
-            {getInitials(author.name)}
+          <div className="author-avatar-large-circle" aria-hidden="true">
+            {author.avatarUrl ? (
+              <img
+                src={author.avatarUrl}
+                alt={author.name}
+                className="author-avatar-large-img"
+              />
+            ) : (
+              <span className="author-monogram-large">
+                {getInitials(author.name)}
+              </span>
+            )}
           </div>
 
           <div className="author-hero-details">

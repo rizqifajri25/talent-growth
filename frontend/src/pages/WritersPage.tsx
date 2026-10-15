@@ -126,7 +126,15 @@ export const WritersPage: React.FC = () => {
               <article key={author.id} className="writer-card">
                 <div className="writer-card-top">
                   <div className="writer-avatar-circle" aria-hidden="true">
-                    {getInitials(author.name)}
+                    {author.avatarUrl ? (
+                      <img
+                        src={author.avatarUrl}
+                        alt={author.name}
+                        className="writer-avatar-img"
+                      />
+                    ) : (
+                      <span className="writer-monogram">{getInitials(author.name)}</span>
+                    )}
                   </div>
                   <div className="writer-info">
                     <h2 className="writer-name">{author.name}</h2>

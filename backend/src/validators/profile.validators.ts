@@ -39,11 +39,25 @@ export const updateProfileSchema = z
       .transform((val) =>
         val === undefined ? undefined : val && val.length > 0 ? val : null
       ),
+    avatarUrl: z
+      .string({
+        error: 'Avatar must be a string',
+      })
+      .trim()
+      .nullable()
+      .optional()
+      .transform((val) =>
+        val === undefined ? undefined : val && val.length > 0 ? val : null
+      ),
   })
   .refine(
-    (data) => data.name !== undefined || data.bio !== undefined,
+    (data) =>
+      data.name !== undefined ||
+      data.bio !== undefined ||
+      data.avatarUrl !== undefined,
     {
-      message: 'At least one field (name or bio) must be provided for update.',
+      message:
+        'At least one field (name, bio, or avatarUrl) must be provided for update.',
       path: ['body'],
     }
   );

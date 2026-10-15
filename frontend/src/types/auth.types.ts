@@ -11,6 +11,7 @@ export interface User {
 export interface UpdateProfilePayload {
   name?: string;
   bio?: string | null;
+  avatarUrl?: string | null;
 }
 
 export interface AuthResponseData {

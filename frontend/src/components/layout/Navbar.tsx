@@ -79,9 +79,17 @@ export const Navbar: React.FC = () => {
                   <span aria-hidden="true">↗</span>
                 </Link>
                 <Link to="/profile" className="nav-link" aria-label="View author profile">
-                  <span className="user-monogram-nav" aria-hidden="true">
-                    {getInitials(user.name)}
-                  </span>
+                  {user.avatarUrl ? (
+                    <img
+                      src={user.avatarUrl}
+                      alt={user.name}
+                      className="user-avatar-nav"
+                    />
+                  ) : (
+                    <span className="user-monogram-nav" aria-hidden="true">
+                      {getInitials(user.name)}
+                    </span>
+                  )}
                 </Link>
                 <button
                   type="button"
@@ -158,10 +166,21 @@ export const Navbar: React.FC = () => {
               </NavLink>
               <NavLink
                 to="/profile"
-                className="nav-link"
+                className="nav-link nav-link-profile-mobile"
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Profile ({user.name})
+                {user.avatarUrl ? (
+                  <img
+                    src={user.avatarUrl}
+                    alt=""
+                    className="user-avatar-mobile-nav"
+                  />
+                ) : (
+                  <span className="user-monogram-tiny" aria-hidden="true">
+                    {getInitials(user.name)}
+                  </span>
+                )}
+                <span>Profile ({user.name})</span>
               </NavLink>
               <button
                 type="button"

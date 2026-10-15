@@ -45,8 +45,18 @@ export const PostCard: React.FC<PostCardProps> = ({
 
       <div className="post-card-footer">
         <div className="post-author-row">
-          <span className="author-dot" aria-hidden="true" />
-          <span className="post-author-name">{post.author.name}</span>
+          {post.author.avatarUrl ? (
+            <img
+              src={post.author.avatarUrl}
+              alt=""
+              className="post-author-avatar-tiny"
+            />
+          ) : (
+            <span className="author-dot" aria-hidden="true" />
+          )}
+          <Link to={`/writers/${post.author.id}`} className="post-author-name">
+            {post.author.name}
+          </Link>
         </div>
 
         <div className="post-card-actions">

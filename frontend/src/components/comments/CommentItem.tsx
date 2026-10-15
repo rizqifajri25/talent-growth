@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Comment } from '../../types/comments.types';
 import { useAuth } from '../../context/useAuth';
 
@@ -115,11 +116,30 @@ export const CommentItem: React.FC<CommentItemProps> = ({
         <div className="comment-header">
           <div className="comment-author-group">
             <div className="comment-avatar" aria-hidden="true">
-              {authorInitial}
+              {!isDeleted && comment.author?.avatarUrl ? (
+                <img
+                  src={comment.author.avatarUrl}
+                  alt=""
+                  className="comment-avatar-img"
+                />
+              ) : (
+                authorInitial
+              )}
             </div>
             <div className="comment-author-meta">
               <span className="comment-author-name">
-                {isDeleted ? 'Former Contributor' : comment.author?.name || 'Anonymous'}
+                {isDeleted ? (
+                  'Former Contributor'
+                ) : comment.author?.id ? (
+                  <Link
+                    to={`/writers/${comment.author.id}`}
+                    className="comment-author-link"
+                  >
+                    {comment.author.name}
+                  </Link>
+                ) : (
+                  comment.author?.name || 'Anonymous'
+                )}
               </span>
               <time className="comment-timestamp" dateTime={comment.createdAt}>
                 {formattedDate}
